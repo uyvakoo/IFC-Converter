@@ -42,6 +42,61 @@ def selftest() -> int:
         ck("public key loads", True)
     except Exception as e:
         ck(f"public key loads ({e})", False)
+
+    # Real end-to-end conversion INSIDE the bundle: build an IFC, then run the full
+    # pipeline (filter -> color -> crop -> IfcConvert -> gltfpack) and inspect the GLB.
+    try:
+        import json
+        import struct
+        import tempfile
+
+        import ifcopenshell.api.context
+        import ifcopenshell.api.geometry
+        import ifcopenshell.api.project
+        import ifcopenshell.api.root
+        import ifcopenshell.api.unit
+
+        from core import pipeline
+
+        with tempfile.TemporaryDirectory() as td:
+            m = ifcopenshell.api.project.create_file("IFC4")
+            ifcopenshell.api.root.create_entity(m, ifc_class="IfcProject", name="selftest")
+            ifcopenshell.api.unit.assign_unit(m, length={"is_metric": True, "raw": "METERS"})
+            ctx = ifcopenshell.api.context.add_context(m, context_type="Model")
+            body = ifcopenshell.api.context.add_context(
+                m,
+                context_type="Model",
+                context_identifier="Body",
+                target_view="MODEL_VIEW",
+                parent=ctx,
+            )
+            wall = ifcopenshell.api.root.create_entity(m, ifc_class="IfcWall", name="W")
+            rep = ifcopenshell.api.geometry.add_wall_representation(
+                m, context=body, length=4.0, height=3.0, thickness=0.2
+            )
+            ifcopenshell.api.geometry.assign_representation(m, product=wall, representation=rep)
+            ifc_path = os.path.join(td, "selftest.ifc")
+            m.write(ifc_path)
+
+            res = pipeline.process(
+                ifc_path,
+                td,
+                ["Structural"],
+                targets=("glb",),
+                ifcconvert=paths.ifcconvert(),
+                gltfpack=paths.gltfpack(),
+                compress=True,
+            )
+            glb_ok = bool(res.glb) and os.path.isfile(res.glb) and os.path.getsize(res.glb) > 0
+            ck("real IFC -> GLB conversion (IfcConvert + gltfpack)", glb_ok)
+            if glb_ok:
+                data = open(res.glb, "rb").read()
+                clen = struct.unpack_from("<I", data, 12)[0]
+                mats = [x.get("name") for x in json.loads(data[20 : 20 + clen]).get("materials", [])]
+                ck("converted GLB carries the 'Structural' material", "Structural" in mats)
+    except Exception as e:
+        ck(f"real IFC -> GLB conversion ({type(e).__name__}: {e})", False)
+
     from PySide6.QtWidgets import QApplication
 
     QApplication.instance() or QApplication([])
