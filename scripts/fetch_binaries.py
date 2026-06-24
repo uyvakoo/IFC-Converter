@@ -8,6 +8,7 @@ them inside the PyInstaller artifact, not the repo.
 
     python scripts/fetch_binaries.py
 """
+
 from __future__ import annotations
 
 import os
@@ -23,7 +24,7 @@ TARGETS = [
     {
         "name": "IfcConvert.exe",
         "url": "https://github.com/IfcOpenShell/IfcOpenShell/releases/download/"
-               "ifcconvert-0.8.5/ifcconvert-0.8.5-win64.zip",
+        "ifcconvert-0.8.5/ifcconvert-0.8.5-win64.zip",
     },
     {
         "name": "gltfpack.exe",
@@ -42,8 +43,7 @@ def fetch(target: dict) -> None:
         zip_path = os.path.join(tmp, "asset.zip")
         urllib.request.urlretrieve(target["url"], zip_path)
         with zipfile.ZipFile(zip_path) as zf:
-            member = next(n for n in zf.namelist()
-                          if os.path.basename(n).lower() == target["name"].lower())
+            member = next(n for n in zf.namelist() if os.path.basename(n).lower() == target["name"].lower())
             with zf.open(member) as src, open(dest, "wb") as out:
                 out.write(src.read())
     print(f"  wrote {dest} ({os.path.getsize(dest):,} bytes)")

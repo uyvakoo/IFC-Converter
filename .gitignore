@@ -21,3 +21,8 @@ _vendor/
 out/
 tests/_out*/
 *.log
+
+# Coverage data
+.coverage
+.coverage.*
+htmlcov/
