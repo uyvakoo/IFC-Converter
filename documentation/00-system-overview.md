@@ -46,7 +46,9 @@ Architecturally these are independent. Build and prove layer 1 headless first; w
 Application source code, `requirements.txt`, PyInstaller spec/build, the `.exe`, signed test
 report, and any message to the client. Those are follow-on work once this pack has been studied.
 
-## Reference platform observed this session
-- Windows 11, Python 3.12.8, **ifcopenshell 0.8.5**, **IfcConvert 0.8.5** (OCC 7.8.1).
-- Confirms the geometry pipeline end-to-end (recolor → GLB) on both a synthetic IFC4 fixture and a
-  real buildingSMART model. See [12-build-order-verification](12-build-order-verification.md).
+## Reference platform
+- Windows 10/11 (64-bit), **Python 3.11.x** (the pinned target — validated on 3.11.9),
+  **ifcopenshell 0.8.5**, **IfcConvert 0.8.5** (OCC 7.8.1), **gltfpack 1.1**.
+- The geometry pipeline is confirmed end-to-end (filter → color → crop → GLB/STP) on both a synthetic
+  IFC4 fixture and a real buildingSMART model, on Python 3.11 locally and on the Windows CI runner.
+  See [12-build-order-verification](12-build-order-verification.md).
