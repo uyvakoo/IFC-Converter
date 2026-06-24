@@ -51,6 +51,19 @@ bundling of `bin\` and `licensing\public_key.pem`, `strip`, `noupx`).
 The self-test loads the native libraries from `_MEIPASS` and performs a **real IFC → GLB conversion**
 (IfcConvert + gltfpack) — it should print `selftest: 9/9 OK`.
 
+The bundle can also run **headless batch conversions** (no GUI):
+```powershell
+.\dist\IFC_Converter\IFC_Converter.exe --cli model.ifc --out out --classes Structural,MEP --glb --stp --compress
+```
+
+### Acceptance report (§8.4, automatable part)
+Drive the built bundle through a battery of real conversions and emit a Markdown report:
+```powershell
+.\.venv\Scripts\python scripts\acceptance_report.py .\dist\IFC_Converter\IFC_Converter.exe acceptance_out
+```
+Produces `acceptance_out\ACCEPTANCE-REPORT.md`. CI runs this on a clean Windows runner and uploads it as
+an artifact. The **clean-VM run, screenshots, and human signature** remain manual (step 9).
+
 ## 7. Air-gapped install (no internet on the target)
 On a networked machine with the same OS + Python 3.11:
 ```powershell

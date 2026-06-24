@@ -175,7 +175,7 @@ def conformance():
     w = MainWindow()
     check(
         "output writability probe (§9 scenario 2)",
-        w._output_writable(OUT) and not w._output_writable("Z:\\definitely_not_writable_xyz"),
+        w._output_writable(OUT) and not w._output_writable(os.path.join(OUT, "_no_such_subdir")),
     )
     check("progress heartbeat fires every 2s (§9.4)", w._heartbeat.interval() == 2000)
     rp = os.path.join(OUT, "conversion_report.txt")

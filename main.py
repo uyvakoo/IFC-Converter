@@ -112,6 +112,12 @@ def selftest() -> int:
 def main():
     if "--selftest" in sys.argv:
         return selftest()
+    if "--cli" in sys.argv:
+        # Headless batch conversion from the frozen bundle, e.g.:
+        #   IFC_Converter.exe --cli model.ifc --out out --classes Structural,MEP --glb --stp --compress
+        import cli
+
+        return cli.main([a for a in sys.argv[1:] if a != "--cli"])
 
     from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
@@ -123,9 +129,10 @@ def main():
     app = QApplication(sys.argv)
     theme.apply_theme(app)
 
-    # Clock-rollback guard up front (§6.2). Lock immediately if tampered.
+    # Clock-rollback guard up front (§6.2). NTP is best-effort (None when air-gapped) and
+    # cross-checks the registry stamp. Lock immediately if tampered.
     store = licensing.RegistryStore()
-    ok, reason = licensing.check_clock(store)
+    ok, reason = licensing.check_clock(store, ntp=licensing.ntp_utc())
     if not ok:
         QMessageBox.critical(None, "License", reason)
         return 1

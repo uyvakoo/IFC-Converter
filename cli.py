@@ -12,12 +12,12 @@ import argparse
 import os
 import sys
 
-from core import convert, filtering, pipeline, report
+from core import convert, filtering, paths, pipeline, report
 from core.errors import FatalError
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_IFCCONVERT = os.path.join(HERE, "bin", "IfcConvert.exe")
-DEFAULT_GLTFPACK = os.path.join(HERE, "bin", "gltfpack.exe")
+# _MEIPASS-aware so this also works when invoked from the frozen bundle (main.py --cli ...).
+DEFAULT_IFCCONVERT = paths.ifcconvert()
+DEFAULT_GLTFPACK = paths.gltfpack()
 
 
 def _output_writable(path: str) -> bool:

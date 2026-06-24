@@ -6,7 +6,7 @@ pair. The application's public key is loaded from PEM (hard-coded/bundled in pro
 key stays with the vendor and is only used by the offline signing tool.
 """
 
-from .clockguard import InMemoryStore, RegistryStore, check_clock
+from .clockguard import InMemoryStore, RegistryStore, check_clock, ntp_utc
 from .core import (
     LicenseResult,
     canonical_payload,
@@ -26,4 +26,5 @@ __all__ = [
     "InMemoryStore",
     "RegistryStore",
     "check_clock",
+    "ntp_utc",
 ]
