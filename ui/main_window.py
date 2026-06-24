@@ -1,4 +1,5 @@
 """Main application window (spec §7.2 Window 2)."""
+
 from __future__ import annotations
 
 import os
@@ -181,9 +182,16 @@ class MainWindow(QMainWindow):
         if self.xyz_toggle.isChecked():
             xyz = [self.xyz_spins[k].value() for k in ("xmin", "xmax", "ymin", "ymax", "zmin", "zmax")]
         storey = None if self.storey_combo.currentIndex() == 0 else self.storey_combo.currentText()
-        return dict(out_dir=self._out_dir, groups=self.selected_groups(), storey_name=storey,
-                    xyz=xyz, targets=targets, ifcconvert=paths.ifcconvert(), gltfpack=paths.gltfpack(),
-                    compress=self.cb_compress.isChecked())
+        return dict(
+            out_dir=self._out_dir,
+            groups=self.selected_groups(),
+            storey_name=storey,
+            xyz=xyz,
+            targets=targets,
+            ifcconvert=paths.ifcconvert(),
+            gltfpack=paths.gltfpack(),
+            compress=self.cb_compress.isChecked(),
+        )
 
     def _update_start_enabled(self):
         ready = bool(self._files) and bool(self._out_dir)
@@ -230,8 +238,10 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):  # §9.5 graceful close
         if self._thread is not None:
-            if QMessageBox.question(self, "Quit", "A conversion is running. Cancel and quit?") \
-                    != QMessageBox.StandardButton.Yes:
+            if (
+                QMessageBox.question(self, "Quit", "A conversion is running. Cancel and quit?")
+                != QMessageBox.StandardButton.Yes
+            ):
                 event.ignore()
                 return
             if self._worker:

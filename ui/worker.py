@@ -4,6 +4,7 @@ QThread worker (spec §4.2/§9.4/§9.5) — wraps the Qt-free `core.batch.run_ba
 Lives in a QThread; emits signals to the UI thread; cancellation is cooperative (a flag the batch
 checks between files) — never QThread.terminate(), which would corrupt temp files.
 """
+
 from __future__ import annotations
 
 from PySide6.QtCore import QObject, Signal, Slot
@@ -12,9 +13,9 @@ from core import batch
 
 
 class BatchWorker(QObject):
-    progress = Signal(int, int)        # file_index, percent
-    status = Signal(int, str, str)     # file_index, state, error
-    fatal = Signal(str)                # whole-run abort (missing binary, §9.3)
+    progress = Signal(int, int)  # file_index, percent
+    status = Signal(int, str, str)  # file_index, state, error
+    fatal = Signal(str)  # whole-run abort (missing binary, §9.3)
     finished = Signal()
 
     def __init__(self, files, opts: dict):

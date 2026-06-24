@@ -1,9 +1,9 @@
 """License Activation modal (spec §7.2 Window 1)."""
+
 from __future__ import annotations
 
 import json
 
-import licensing
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QDialog,
@@ -15,6 +15,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
 )
+
+import licensing
 
 
 class LicenseDialog(QDialog):
@@ -55,8 +57,9 @@ class LicenseDialog(QDialog):
         lay.addWidget(btn_activate)
 
     def _browse(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Select license.key", "",
-                                              "License (*.key *.json);;All files (*)")
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Select license.key", "", "License (*.key *.json);;All files (*)"
+        )
         if path:
             self._license_path = path
             self.path_label.setText(path)

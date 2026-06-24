@@ -4,6 +4,7 @@ Application entry point.
 Flow: clock-rollback guard -> License Activation modal (gates the app) -> Main window.
 The license public key and binaries resolve via core.paths (._MEIPASS-aware for the bundle).
 """
+
 from __future__ import annotations
 
 import os
@@ -17,8 +18,8 @@ def selftest() -> int:
     import subprocess
 
     import ifcopenshell
-    import licensing
 
+    import licensing
     from core import paths
 
     oks = []
@@ -42,8 +43,10 @@ def selftest() -> int:
     except Exception as e:
         ck(f"public key loads ({e})", False)
     from PySide6.QtWidgets import QApplication
+
     QApplication.instance() or QApplication([])
     from ui.main_window import MainWindow
+
     MainWindow()
     ck("Qt + UI construct (offscreen)", True)
 
@@ -55,9 +58,9 @@ def main():
     if "--selftest" in sys.argv:
         return selftest()
 
-    import licensing
     from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
+    import licensing
     from ui import theme
     from ui.license_window import LicenseDialog
     from ui.main_window import MainWindow
