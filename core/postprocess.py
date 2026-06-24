@@ -11,6 +11,7 @@ not a rewrite:
 
 `-kn`/`-km` keep node + material names so colored materials and per-element traceability survive.
 """
+
 from __future__ import annotations
 
 import os
@@ -26,8 +27,14 @@ def _run(cmd, glb_path, tmp):
     shutil.move(tmp, glb_path)
 
 
-def compress_glb(gltfpack: str, glb_path: str, *, mode: str = "meshopt", simplify: float = 0.5,
-                 gltf_pipeline: str | None = None) -> dict:
+def compress_glb(
+    gltfpack: str,
+    glb_path: str,
+    *,
+    mode: str = "meshopt",
+    simplify: float = 0.5,
+    gltf_pipeline: str | None = None,
+) -> dict:
     """Optimize `glb_path` in place. Returns {mode, bytes_before, bytes_after, ratio}."""
     before = os.path.getsize(glb_path)
     fd, tmp = tempfile.mkstemp(suffix=".glb")
@@ -42,8 +49,10 @@ def compress_glb(gltfpack: str, glb_path: str, *, mode: str = "meshopt", simplif
             _run(cmd, glb_path, tmp)
         elif mode == "draco":
             if not gltf_pipeline or not os.path.isfile(gltf_pipeline):
-                raise RuntimeError("draco mode requires a bundled gltf-pipeline binary "
-                                   "(set gltf_pipeline=...); see D1 open sub-item")
+                raise RuntimeError(
+                    "draco mode requires a bundled gltf-pipeline binary "
+                    "(set gltf_pipeline=...); see D1 open sub-item"
+                )
             _run([gltf_pipeline, "-i", glb_path, "-o", tmp, "-d"], glb_path, tmp)
         else:
             raise ValueError(f"unknown compress mode: {mode!r}")
@@ -51,5 +60,9 @@ def compress_glb(gltfpack: str, glb_path: str, *, mode: str = "meshopt", simplif
         if os.path.exists(tmp):
             os.remove(tmp)
     after = os.path.getsize(glb_path)
-    return {"mode": mode, "bytes_before": before, "bytes_after": after,
-            "ratio": round(after / before, 3) if before else None}
+    return {
+        "mode": mode,
+        "bytes_before": before,
+        "bytes_after": after,
+        "ratio": round(after / before, 3) if before else None,
+    }

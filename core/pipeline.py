@@ -6,6 +6,7 @@ Per-file orchestration (F1->F5 glue, headless).
 
 Pure and Qt-free; a UI worker (Phase B) will call `process` and forward `progress_cb`.
 """
+
 from __future__ import annotations
 
 import os
@@ -45,9 +46,20 @@ def _resolve_box(model, analysis, storey_name, xyz):
     return None, "none"
 
 
-def process(input_path, out_dir, selected_groups, *, storey_name=None, xyz=None,
-            targets=("glb",), ifcconvert=None, gltfpack=None, compress=False, simplify=0.5,
-            progress_cb=None) -> Result:
+def process(
+    input_path,
+    out_dir,
+    selected_groups,
+    *,
+    storey_name=None,
+    xyz=None,
+    targets=("glb",),
+    ifcconvert=None,
+    gltfpack=None,
+    compress=False,
+    simplify=0.5,
+    progress_cb=None,
+) -> Result:
     t0 = time.time()
     os.makedirs(out_dir, exist_ok=True)
     model = ifcopenshell.open(input_path)

@@ -9,6 +9,7 @@ Two storeys, all four color groups represented, plus a non-target class:
 
 Usage:  python make_fixture.py [out.ifc]   (default: fixture.ifc)
 """
+
 import sys
 
 import ifcopenshell.api.aggregate
@@ -42,7 +43,8 @@ def build(out_path):
     ifcopenshell.api.unit.assign_unit(model, length={"is_metric": True, "raw": "METERS"})
     ctx = ifcopenshell.api.context.add_context(model, context_type="Model")
     body = ifcopenshell.api.context.add_context(
-        model, context_type="Model", context_identifier="Body", target_view="MODEL_VIEW", parent=ctx)
+        model, context_type="Model", context_identifier="Body", target_view="MODEL_VIEW", parent=ctx
+    )
 
     site = ifcopenshell.api.root.create_entity(model, ifc_class="IfcSite", name="Site")
     building = ifcopenshell.api.root.create_entity(model, ifc_class="IfcBuilding", name="Building")
@@ -57,7 +59,8 @@ def build(out_path):
     def wall(name, z):
         w = ifcopenshell.api.root.create_entity(model, ifc_class="IfcWall", name=name)
         rep = ifcopenshell.api.geometry.add_wall_representation(
-            model, context=body, length=4.0, height=3.0, thickness=0.2)
+            model, context=body, length=4.0, height=3.0, thickness=0.2
+        )
         ifcopenshell.api.geometry.assign_representation(model, product=w, representation=rep)
         ifcopenshell.api.geometry.edit_object_placement(model, product=w, matrix=_xlate(0.0, 0.0, z))
         return w
@@ -66,7 +69,8 @@ def build(out_path):
     wall_g = wall("Wall G", 0.0)
     slab_g = ifcopenshell.api.root.create_entity(model, ifc_class="IfcSlab", name="Slab G")
     slab_rep = ifcopenshell.api.geometry.add_slab_representation(
-        model, context=body, depth=0.2, polyline=[(0.0, 0.0), (4.0, 0.0), (4.0, 4.0), (0.0, 4.0)])
+        model, context=body, depth=0.2, polyline=[(0.0, 0.0), (4.0, 0.0), (4.0, 4.0), (0.0, 4.0)]
+    )
     ifcopenshell.api.geometry.assign_representation(model, product=slab_g, representation=slab_rep)
     ifcopenshell.api.geometry.edit_object_placement(model, product=slab_g, matrix=_xlate(0.0, 0.0, 0.0))
     duct_g = _box(model, body, "IfcDuctSegment", "Duct G", 0.3, 0.3, 2.0, (2.0, 2.0, 1.0))
@@ -87,8 +91,10 @@ def build(out_path):
 
     model.write(out_path)
     print(f"wrote {out_path}  schema={model.schema}")
-    print("  Ground: IfcWall, IfcSlab, IfcDuctSegment | "
-          "Level 1: IfcWall, IfcDoor, IfcCableSegment | IfcRoof (non-target)")
+    print(
+        "  Ground: IfcWall, IfcSlab, IfcDuctSegment | "
+        "Level 1: IfcWall, IfcDoor, IfcCableSegment | IfcRoof (non-target)"
+    )
 
 
 if __name__ == "__main__":

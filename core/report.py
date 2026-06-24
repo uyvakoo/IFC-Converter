@@ -1,4 +1,5 @@
 """Shared conversion_report.txt writer (spec §5.2). Append-only, best-effort."""
+
 from __future__ import annotations
 
 import os

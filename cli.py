@@ -5,6 +5,7 @@ Examples:
   python cli.py tests/fixtures/fixture.ifc --out out --classes Structural,MEP --storey Ground --glb
   python cli.py a.ifc b.ifc --out out --classes Structural --xyz 0,10,0,10,0,3 --glb --stp
 """
+
 from __future__ import annotations
 
 import argparse
@@ -35,8 +36,11 @@ def main(argv=None):
     p = argparse.ArgumentParser(description="IFC -> filtered/cropped/colored GLB/STP (core pipeline)")
     p.add_argument("inputs", nargs="+", help="input .ifc file(s)")
     p.add_argument("--out", default="out", help="output folder")
-    p.add_argument("--classes", default=",".join(filtering.ALL_GROUPS),
-                   help="comma list of groups: " + ",".join(filtering.ALL_GROUPS))
+    p.add_argument(
+        "--classes",
+        default=",".join(filtering.ALL_GROUPS),
+        help="comma list of groups: " + ",".join(filtering.ALL_GROUPS),
+    )
     p.add_argument("--storey", default=None, help="storey name to crop to (Z bounds)")
     p.add_argument("--xyz", default=None, help="manual crop box xmin,xmax,ymin,ymax,zmin,zmax")
     p.add_argument("--glb", action="store_true", help="emit GLB")
@@ -69,27 +73,45 @@ def main(argv=None):
     rc = 0
     for path in args.inputs:
         try:
-            r = pipeline.process(path, args.out, groups, storey_name=args.storey, xyz=xyz,
-                                 targets=targets, ifcconvert=args.ifcconvert, gltfpack=args.gltfpack,
-                                 compress=args.compress, simplify=args.simplify,
-                                 progress_cb=lambda pct: None)
+            r = pipeline.process(
+                path,
+                args.out,
+                groups,
+                storey_name=args.storey,
+                xyz=xyz,
+                targets=targets,
+                ifcconvert=args.ifcconvert,
+                gltfpack=args.gltfpack,
+                compress=args.compress,
+                simplify=args.simplify,
+                progress_cb=lambda pct: None,
+            )
             cs = r.compress_stats
-            print(f"[OK] {os.path.basename(path)} schema={r.schema} crop={r.crop_desc} "
-                  f"kept={r.kept} removed={r.removed} styled_items={r.style_stats.get('items')} "
-                  f"glb={r.glb_bytes} stp={r.stp_bytes}"
-                  + (f" compress={cs['bytes_before']}->{cs['bytes_after']} (x{cs['ratio']})" if cs else "")
-                  + f" {r.elapsed_s}s")
-            report.append(report_path, {
-                "input": path, "crop": r.crop_desc, "filter": groups,
-                "entities_processed": r.kept, "entities_removed": r.removed,
-                "glb_bytes": r.glb_bytes, "stp_bytes": r.stp_bytes,
-                "elapsed_s": r.elapsed_s, "status": "Done",
-            })
+            print(
+                f"[OK] {os.path.basename(path)} schema={r.schema} crop={r.crop_desc} "
+                f"kept={r.kept} removed={r.removed} styled_items={r.style_stats.get('items')} "
+                f"glb={r.glb_bytes} stp={r.stp_bytes}"
+                + (f" compress={cs['bytes_before']}->{cs['bytes_after']} (x{cs['ratio']})" if cs else "")
+                + f" {r.elapsed_s}s"
+            )
+            report.append(
+                report_path,
+                {
+                    "input": path,
+                    "crop": r.crop_desc,
+                    "filter": groups,
+                    "entities_processed": r.kept,
+                    "entities_removed": r.removed,
+                    "glb_bytes": r.glb_bytes,
+                    "stp_bytes": r.stp_bytes,
+                    "elapsed_s": r.elapsed_s,
+                    "status": "Done",
+                },
+            )
         except Exception as e:  # per-file isolation (spec §9.1)
             rc = 1
             print(f"[ERROR] {os.path.basename(path)}: {e}")
-            report.append(report_path, {"input": path, "filter": groups,
-                                        "status": "Error", "error": str(e)})
+            report.append(report_path, {"input": path, "filter": groups, "status": "Error", "error": str(e)})
     return rc
 
 

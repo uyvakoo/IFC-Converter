@@ -5,6 +5,7 @@ The geometry iterator is used as a READ-ONLY enumerator: it lazily triangulates 
 time (memory-safe), and for each element we record its world-space bounding box and class. The
 result feeds filtering (F2), cropping (F3), and the report. It never edits the model.
 """
+
 from __future__ import annotations
 
 import multiprocessing
@@ -30,8 +31,9 @@ class Analysis:
     class_counts: dict[str, int] = field(default_factory=dict)
 
     def z_bounds(self, guids):
-        zs = [(self.elements[g].bbox_min[2], self.elements[g].bbox_max[2])
-              for g in guids if g in self.elements]
+        zs = [
+            (self.elements[g].bbox_min[2], self.elements[g].bbox_max[2]) for g in guids if g in self.elements
+        ]
         if not zs:
             return None
         return min(z[0] for z in zs), max(z[1] for z in zs)

@@ -1,4 +1,5 @@
 """Parse a GLB and map each mesh node back to its IFC element class + glTF material name."""
+
 from __future__ import annotations
 
 import json
@@ -19,7 +20,7 @@ def glb_json(path: str) -> dict:
     data = open(path, "rb").read()
     assert data[:4] == b"glTF", "not a glb"
     clen = struct.unpack_from("<I", data, 12)[0]
-    return json.loads(data[20:20 + clen])
+    return json.loads(data[20 : 20 + clen])
 
 
 def material_names(glb_path: str) -> set:
@@ -45,8 +46,9 @@ def node_class_material(glb_path: str, ifc_path: str):
     mats = [m.get("name") for m in g.get("materials", [])]
     meshes = g.get("meshes", [])
     model = ifcopenshell.open(ifc_path)
-    guid_to_class = {_hex(ifcopenshell.guid.expand(e.GlobalId)): e.is_a()
-                     for e in model.by_type("IfcElement")}
+    guid_to_class = {
+        _hex(ifcopenshell.guid.expand(e.GlobalId)): e.is_a() for e in model.by_type("IfcElement")
+    }
     out = []
     for node in g.get("nodes", []):
         m = _UUID.search(node.get("name", ""))

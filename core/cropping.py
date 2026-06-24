@@ -9,6 +9,7 @@ Crop box = (xmin, xmax, ymin, ymax, zmin, zmax); any axis may be None (unbounded
 a Z-only box. Partial-overlap policy: keep an element if its bbox has POSITIVE-length overlap with the
 box on every bounded axis (touching a boundary does not count — controlled by `tol`).
 """
+
 from __future__ import annotations
 
 import ifcopenshell.api.root

@@ -2,6 +2,7 @@
 Assertion suite for the headless core (M1-M3). Run from project root:
     python tests/validate_core.py
 """
+
 from __future__ import annotations
 
 import os
@@ -57,25 +58,36 @@ def m2():
     by_cls = {}
     for cls, mat in nm:
         by_cls.setdefault(cls, set()).add(mat)
-    check("walls/slab use 'Structural' material",
-          by_cls.get("IfcWall") == {"Structural"} and by_cls.get("IfcSlab") == {"Structural"}, str(by_cls))
+    check(
+        "walls/slab use 'Structural' material",
+        by_cls.get("IfcWall") == {"Structural"} and by_cls.get("IfcSlab") == {"Structural"},
+        str(by_cls),
+    )
     check("duct uses 'MEP' material", by_cls.get("IfcDuctSegment") == {"MEP"}, str(by_cls))
-    check("no Architectural/Cables/Roof in GLB",
-          not ({"IfcDoor", "IfcCableSegment", "IfcRoof"} & set(by_cls)))
+    check(
+        "no Architectural/Cables/Roof in GLB", not ({"IfcDoor", "IfcCableSegment", "IfcRoof"} & set(by_cls))
+    )
 
 
 # ---- M3 -------------------------------------------------------------------
 def m3():
     print("M3  spatial crop (F3)  [all classes, storey=Ground]")
-    r = pipeline.process(FIXTURE, OUT, list(filtering.ALL_GROUPS), storey_name="Ground",
-                         targets=("glb",), ifcconvert=IFCCONVERT)
+    r = pipeline.process(
+        FIXTURE,
+        OUT,
+        list(filtering.ALL_GROUPS),
+        storey_name="Ground",
+        targets=("glb",),
+        ifcconvert=IFCCONVERT,
+    )
     # Ground contains wall_g, slab_g, duct_g -> kept 3; removed wall_1, door, cable, roof (4)
     check("kept == 3 (ground only)", r.kept == 3, f"{r.kept}")
     check("removed == 4", r.removed == 4, f"{r.removed}")
     nm = glbtools.node_class_material(r.glb, FIXTURE)
     classes = sorted(c for c, _ in nm)
-    check("GLB has only the 3 ground classes",
-          classes == ["IfcDuctSegment", "IfcSlab", "IfcWall"], str(classes))
+    check(
+        "GLB has only the 3 ground classes", classes == ["IfcDuctSegment", "IfcSlab", "IfcWall"], str(classes)
+    )
 
     # M3 mutation produces a VALID, re-parseable IFC with only ground geometry
     print("M3b mutated model re-parses cleanly")
@@ -93,8 +105,11 @@ def m3():
         with_geom = [e for e in reopened.by_type("IfcElement") if e.Representation]
         check("re-opened crop has 3 elements with geometry", len(with_geom) == 3, f"{len(with_geom)}")
         a2 = analyze.run(reopened)
-        wall_zmax = [round(a2.elements[w.GlobalId].bbox_max[2], 1)
-                     for w in reopened.by_type("IfcWall") if w.GlobalId in a2.elements]
+        wall_zmax = [
+            round(a2.elements[w.GlobalId].bbox_max[2], 1)
+            for w in reopened.by_type("IfcWall")
+            if w.GlobalId in a2.elements
+        ]
         check("surviving wall is the ground wall (Zmax<=3)", wall_zmax == [3.0], str(wall_zmax))
     finally:
         os.remove(tmp)
@@ -108,6 +123,7 @@ def m4():
     import tempfile
 
     import cli
+
     before = hashlib.sha256(open(FIXTURE, "rb").read()).hexdigest()
     pre = set(glob.glob(os.path.join(tempfile.gettempdir(), "fixture_*.ifc")))
     pipeline.process(FIXTURE, OUT, ["Structural"], targets=("glb", "stp"), ifcconvert=IFCCONVERT)
@@ -130,19 +146,33 @@ def m5():
         return
     plain = pipeline.process(REAL, OUT, list(filtering.ALL_GROUPS), targets=("glb",), ifcconvert=IFCCONVERT)
     plain_bytes, plain_tris = plain.glb_bytes, glbtools.triangle_count(plain.glb)
-    comp = pipeline.process(REAL, OUT, list(filtering.ALL_GROUPS), targets=("glb",),
-                            ifcconvert=IFCCONVERT, gltfpack=GLTFPACK, compress=True, simplify=0.5)
+    comp = pipeline.process(
+        REAL,
+        OUT,
+        list(filtering.ALL_GROUPS),
+        targets=("glb",),
+        ifcconvert=IFCCONVERT,
+        gltfpack=GLTFPACK,
+        compress=True,
+        simplify=0.5,
+    )
     cs = comp.compress_stats
     check("compress stats produced", cs is not None)
     check("GLB smaller after gltfpack", comp.glb_bytes < plain_bytes, f"{plain_bytes}->{comp.glb_bytes}")
-    check("compressed GLB valid + keeps materials", len(glbtools.material_names(comp.glb)) > 0,
-          str(glbtools.material_names(comp.glb)))
-    print(f"      info: triangles {plain_tris}->{glbtools.triangle_count(comp.glb)}, "
-          f"bytes {plain_bytes}->{comp.glb_bytes} (x{cs['ratio'] if cs else '?'})")
+    check(
+        "compressed GLB valid + keeps materials",
+        len(glbtools.material_names(comp.glb)) > 0,
+        str(glbtools.material_names(comp.glb)),
+    )
+    print(
+        f"      info: triangles {plain_tris}->{glbtools.triangle_count(comp.glb)}, "
+        f"bytes {plain_bytes}->{comp.glb_bytes} (x{cs['ratio'] if cs else '?'})"
+    )
 
 
 def main():
     import shutil
+
     shutil.rmtree(OUT, ignore_errors=True)  # avoid stale outputs
     os.makedirs(OUT, exist_ok=True)
     m1()

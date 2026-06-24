@@ -6,6 +6,7 @@ Runs the official IfcConvert CLI on an already-written IFC. GLB keeps the colors
 separate gltfpack post-step (F5, to be added). IfcConvert prints UTF-16 on Windows, so output is
 decoded accordingly for logging.
 """
+
 from __future__ import annotations
 
 import os

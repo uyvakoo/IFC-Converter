@@ -1,4 +1,5 @@
 """Resource path resolution that works in dev and inside a PyInstaller one-folder bundle (§8.2)."""
+
 from __future__ import annotations
 
 import os

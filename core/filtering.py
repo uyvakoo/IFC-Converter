@@ -8,14 +8,17 @@ subtype of `IfcDistributionFlowElement` (the broad MEP class) and must not be sw
 Membership/keep is group-based (an element is kept iff its group is selected), not a raw `is_a` against
 the union of class strings — that is what prevents the cable/MEP bleed.
 """
+
 from __future__ import annotations
 
 # group -> (classes, rgb 0..1). Hex in comments per spec. ORDER = precedence for group_of.
 COLOR_GROUPS: dict[str, tuple[tuple[str, ...], tuple[float, float, float]]] = {
-    "Structural": (("IfcWall", "IfcSlab", "IfcColumn", "IfcBeam"), (0.8, 0.8, 0.8)),         # #CCCCCC
-    "Cables": (("IfcCableSegment",), (0.9, 0.2, 0.2)),                                        # #E63333
+    "Structural": (("IfcWall", "IfcSlab", "IfcColumn", "IfcBeam"), (0.8, 0.8, 0.8)),  # #CCCCCC
+    "Cables": (("IfcCableSegment",), (0.9, 0.2, 0.2)),  # #E63333
     "Architectural": (
-        ("IfcFurnishingElement", "IfcDoor", "IfcWindow", "IfcSpace"), (0.6, 0.3, 0.1)),  # #994D1A
+        ("IfcFurnishingElement", "IfcDoor", "IfcWindow", "IfcSpace"),
+        (0.6, 0.3, 0.1),
+    ),  # #994D1A
     "MEP": (("IfcPipeSegment", "IfcDistributionFlowElement", "IfcDuctSegment"), (0.2, 0.4, 0.8)),  # #3366CC
 }
 

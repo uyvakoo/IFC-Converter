@@ -6,6 +6,7 @@ ITEMS, recursing through IfcMappedItem. Type-authored geometry (IfcWallType/IfcS
 via IfcMappedItem; assigning to the per-instance pointer colors nothing -> grey GLB (D12). Ported
 from the validated screening implementation.
 """
+
 from __future__ import annotations
 
 import ifcopenshell.api.style
@@ -19,7 +20,9 @@ def build_styles(model) -> dict[str, object]:
     for group, (_classes, rgb) in filtering.COLOR_GROUPS.items():
         style = ifcopenshell.api.style.add_style(model, name=group)
         ifcopenshell.api.style.add_surface_style(
-            model, style=style, ifc_class="IfcSurfaceStyleShading",
+            model,
+            style=style,
+            ifc_class="IfcSurfaceStyleShading",
             attributes={
                 "SurfaceColour": {"Name": None, "Red": rgb[0], "Green": rgb[1], "Blue": rgb[2]},
                 "Transparency": 0.0,
