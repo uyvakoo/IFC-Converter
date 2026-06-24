@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install hash-locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Fetch native binaries (IfcConvert, gltfpack)
+        run: python scripts/fetch_binaries.py
+
+      - name: Run validation suites
+        env:
+          QT_QPA_PLATFORM: offscreen
+        shell: pwsh
+        run: |
+          $suites = Get-ChildItem tests/validate_*.py -ErrorAction SilentlyContinue
+          if (-not $suites) { Write-Host "no validation suites present yet"; exit 0 }
+          foreach ($s in $suites) {
+            Write-Host "=== $($s.Name) ==="
+            python $s.FullName
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }

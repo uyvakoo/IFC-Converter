@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import os
 import sys
-import zipfile
 import tempfile
 import urllib.request
+import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BIN = os.path.join(ROOT, "bin")
