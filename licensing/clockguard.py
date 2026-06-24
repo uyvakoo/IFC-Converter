@@ -28,7 +28,7 @@ class InMemoryStore:
 class RegistryStore:
     """Production store: HKEY_CURRENT_USER (no admin). Windows only."""
 
-    def __init__(self, subkey=r"Software\\IFCConverter", name="last_seen_utc"):
+    def __init__(self, subkey=r"Software\IFCConverter", name="last_seen_utc"):
         self.subkey, self.name = subkey, name
 
     def get(self):

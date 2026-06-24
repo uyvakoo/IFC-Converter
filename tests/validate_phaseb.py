@@ -118,6 +118,32 @@ def f7_licensing():
     ok, reason = licensing.check_clock(store, now - timedelta(days=5))  # rolled back
     check("rolled-back clock locked", (not ok) and "tamper" in reason.lower(), reason)
 
+    # clock guard via the REAL HKCU registry store (the production path)
+    if sys.platform == "win32":
+        import winreg
+
+        subkey = r"Software\IFCConverter_test"
+        reg = licensing.RegistryStore(subkey=subkey)
+        try:
+            ok1, _ = licensing.check_clock(reg, now)
+            ok2, _ = licensing.check_clock(reg, now + timedelta(days=1))
+            persisted = reg.get()
+            ok3, rreason = licensing.check_clock(reg, now - timedelta(days=5))
+            check("registry: first-run + later ok", ok1 and ok2)
+            check(
+                "registry: value persisted to HKCU",
+                persisted == (now + timedelta(days=1)).isoformat(),
+                str(persisted),
+            )
+            check("registry: rollback locked", (not ok3) and "tamper" in rreason.lower(), rreason)
+        finally:
+            try:
+                winreg.DeleteKey(winreg.HKEY_CURRENT_USER, subkey)
+            except OSError:
+                pass
+    else:
+        check("registry store (skipped: not Windows)", True)
+
 
 def main():
     import shutil
