@@ -1,0 +1,23 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Build artifacts
+build/
+dist/
+*.spec.bak
+
+# Native binaries — fetched via scripts/fetch_binaries.py, never committed
+bin/
+
+# Vendored offline wheels — produced by scripts/vendor_wheels.py, never committed
+wheels/
+
+# Vendor RSA private key — MUST NEVER be committed or bundled
+_vendor/
+
+# Local outputs / logs
+out/
+tests/_out*/
+*.log
