@@ -10,9 +10,10 @@ QThread worker will wrap — the worker forwards `progress_cb`/`status_cb` to si
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
-from . import convert, pipeline
+from . import convert, pipeline, report
 from .errors import FatalError
 
 
@@ -48,6 +49,7 @@ def run_batch(
     if compress:
         convert.ensure_available(gltfpack)
 
+    report_path = os.path.join(out_dir, "conversion_report.txt")
     statuses = [FileStatus(f) for f in files]
     for i, fs in enumerate(statuses):
         if cancel and cancel():
@@ -76,11 +78,30 @@ def run_batch(
                 progress_cb=(lambda p, idx=i: progress_cb(idx, p)) if progress_cb else None,
             )
             fs.state = "Done"
+            r = fs.result
+            report.append(
+                report_path,
+                {
+                    "input": fs.path,
+                    "crop": r.crop_desc,
+                    "filter": groups,
+                    "entities_processed": r.kept,
+                    "entities_removed": r.removed,
+                    "unit_scale": r.unit_scale,
+                    "glb_bytes": r.glb_bytes,
+                    "stp_bytes": r.stp_bytes,
+                    "elapsed_s": r.elapsed_s,
+                    "status": "Done",
+                },
+            )
         except FatalError:
             raise  # abort whole batch
         except Exception as e:  # per-file isolation (§9.1)
             fs.state = "Error"
             fs.error = str(e)
+            report.append(
+                report_path, {"input": fs.path, "filter": groups, "status": "Error", "error": str(e)}
+            )
         if status_cb:
             status_cb(i, fs)
     return statuses

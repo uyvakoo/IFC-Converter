@@ -15,6 +15,7 @@ import time
 from dataclasses import dataclass, field
 
 import ifcopenshell
+import ifcopenshell.util.unit
 
 from . import analyze, convert, cropping, filtering, postprocess, styling
 
@@ -32,6 +33,7 @@ class Result:
     glb_bytes: int | None = None
     stp_bytes: int | None = None
     compress_stats: dict | None = None
+    unit_scale: float | None = None  # project length unit -> metres (§5.1; reporting only, D5)
     elapsed_s: float = 0.0
 
 
@@ -64,6 +66,9 @@ def process(
     os.makedirs(out_dir, exist_ok=True)
     model = ifcopenshell.open(input_path)
     res = Result(input_path=input_path, schema=model.schema)
+    # §5.1: read the project unit scale (to metres) for the report. Units are owned by
+    # IfcConvert at export time; this is for logging/validation only (D5 — no Python rescaling).
+    res.unit_scale = ifcopenshell.util.unit.calculate_unit_scale(model)
 
     analysis = analyze.run(model, progress_cb=progress_cb)
     box, res.crop_desc = _resolve_box(model, analysis, storey_name, xyz)

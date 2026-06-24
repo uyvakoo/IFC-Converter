@@ -95,7 +95,11 @@ def f7_licensing():
 
     expired = licensing.sign_license(priv, M, past)
     r = licensing.verify_license(expired, pub_pem, current_machine=M)
-    check("expired rejected", (not r.ok) and "expired" in r.reason.lower(), r.reason)
+    check(
+        "expired rejected (exact spec message)",
+        (not r.ok) and r.reason == "Invalid license - contact vendor",
+        r.reason,
+    )
 
     tampered = dict(good)
     tampered["expiry"] = (date.today() + timedelta(days=3650)).isoformat()

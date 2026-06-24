@@ -170,6 +170,20 @@ def real_world_e2e():
     )
 
 
+def conformance():
+    print("UI  conformance: §9 error-handling + §5.2 report")
+    w = MainWindow()
+    check(
+        "output writability probe (§9 scenario 2)",
+        w._output_writable(OUT) and not w._output_writable("Z:\\definitely_not_writable_xyz"),
+    )
+    check("progress heartbeat fires every 2s (§9.4)", w._heartbeat.interval() == 2000)
+    rp = os.path.join(OUT, "conversion_report.txt")
+    report_text = open(rp).read() if os.path.exists(rp) else ""
+    check("conversion_report.txt written by the worker (§5.2)", os.path.exists(rp))
+    check("report records the project unit scale (§5.1)", "unit_scale_to_m=" in report_text)
+
+
 def main():
     import shutil
 
@@ -179,6 +193,7 @@ def main():
     license_flow()
     worker_run()
     real_world_e2e()
+    conformance()
     p, t = sum(_results), len(_results)
     print(f"\n==== {p}/{t} checks passed ====")
     sys.exit(0 if p == t else 1)

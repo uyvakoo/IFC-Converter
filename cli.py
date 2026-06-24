@@ -102,6 +102,7 @@ def main(argv=None):
                     "filter": groups,
                     "entities_processed": r.kept,
                     "entities_removed": r.removed,
+                    "unit_scale": r.unit_scale,
                     "glb_bytes": r.glb_bytes,
                     "stp_bytes": r.stp_bytes,
                     "elapsed_s": r.elapsed_s,

@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 
 import ifcopenshell
-from PySide6.QtCore import QThread
+from PySide6.QtCore import QThread, QTimer
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -39,6 +39,11 @@ class MainWindow(QMainWindow):
         self._out_dir: str | None = None
         self._thread: QThread | None = None
         self._worker: BatchWorker | None = None
+        # §9.4: keep the UI alive with a heartbeat at least every 2s during long conversions
+        # (IfcConvert/gltfpack steps are opaque, so real progress can stall between them).
+        self._heartbeat = QTimer(self)
+        self._heartbeat.setInterval(2000)
+        self._heartbeat.timeout.connect(self._tick)
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -155,10 +160,25 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
-    def _pick_output(self):
-        d = QFileDialog.getExistingDirectory(self, "Output folder")
-        if d:
-            self.set_output(d)
+    def _pick_output(self, d=None):
+        d = d or QFileDialog.getExistingDirectory(self, "Output folder")
+        if not d:
+            return
+        if not self._output_writable(d):  # §9 scenario 2
+            QMessageBox.critical(self, "Output folder", "That folder is not writable. Please choose another.")
+            return
+        self.set_output(d)
+
+    @staticmethod
+    def _output_writable(path: str) -> bool:
+        try:
+            probe = os.path.join(path, ".write_test")
+            with open(probe, "w") as f:
+                f.write("ok")
+            os.remove(probe)
+            return True
+        except OSError:
+            return False
 
     def set_output(self, d):
         self._out_dir = d
@@ -212,6 +232,11 @@ class MainWindow(QMainWindow):
         self.btn_start.setEnabled(False)
         self.btn_cancel.setEnabled(True)
         self._thread.start()
+        self._heartbeat.start()  # §9.4: guarantee a UI refresh at least every 2s
+
+    def _tick(self):
+        # Heartbeat during opaque IfcConvert/gltfpack steps so the UI visibly stays alive.
+        self.progress.update()
 
     def _cancel(self):
         if self._worker:
@@ -228,6 +253,7 @@ class MainWindow(QMainWindow):
         QMessageBox.critical(self, "Fatal", msg)
 
     def _on_finished(self):
+        self._heartbeat.stop()
         if self._thread:
             self._thread.quit()
             self._thread.wait()

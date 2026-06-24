@@ -1,0 +1,69 @@
+# Build Guide (Windows)
+
+Step-by-step build of the one-folder `.exe` bundle (spec §8.5).
+
+## 1. Prerequisites
+- **Windows 10/11, 64-bit.**
+- **Python 3.11.x (64-bit)** — https://www.python.org/downloads/release/python-3119/
+  (the project is pinned to 3.11; 3.12 is **not** supported because some pinned wheels — e.g. numpy —
+  resolve differently there).
+- Git.
+
+## 2. Set up the environment
+```powershell
+git clone https://github.com/uyvakoo/IFC-Converter.git
+cd IFC-Converter
+
+py -3.11 -m venv .venv
+.\.venv\Scripts\python -m pip install --upgrade pip
+.\.venv\Scripts\python -m pip install --require-hashes -r requirements-dev.txt
+```
+`--require-hashes` enforces the locked, hash-pinned dependency set (any tampered/changed wheel fails
+the install).
+
+## 3. Fetch the bundled native binaries
+```powershell
+.\.venv\Scripts\python scripts\fetch_binaries.py
+```
+Downloads `IfcConvert.exe` (IfcOpenShell 0.8.5) and `gltfpack.exe` (meshoptimizer 1.1) into `bin\`.
+They are not committed; the PyInstaller bundle embeds them.
+
+## 4. (Optional) Obfuscate the licensing modules — production
+Production builds should obfuscate `licensing/` with **PyArmor** (a paid license is required; the
+spec's `--key` option was removed in PyInstaller 6, so PyArmor is the supported path):
+```powershell
+.\.venv\Scripts\pyarmor gen --recursive licensing
+```
+Then point the build at the obfuscated package. (CI builds the un-obfuscated tree.)
+
+## 5. Build the one-folder bundle
+```powershell
+.\.venv\Scripts\pyinstaller main.spec
+```
+Output: `dist\IFC_Converter\IFC_Converter.exe` (+ `_internal\`). The `.spec` drives everything
+(`collect_all("ifcopenshell")` for the native OpenCASCADE libraries, the mandatory hidden imports,
+bundling of `bin\` and `licensing\public_key.pem`, `strip`, `noupx`).
+
+## 6. Verify the bundle
+```powershell
+.\dist\IFC_Converter\IFC_Converter.exe --selftest
+```
+The self-test loads the native libraries from `_MEIPASS` and performs a **real IFC → GLB conversion**
+(IfcConvert + gltfpack) — it should print `selftest: 9/9 OK`.
+
+## 7. Air-gapped install (no internet on the target)
+On a networked machine with the same OS + Python 3.11:
+```powershell
+.\.venv\Scripts\python scripts\vendor_wheels.py
+```
+Copy `wheels\` to the target and install with `pip install --no-index --find-links wheels -r requirements.txt`.
+
+## 8. (Optional) Code-sign the executable
+```powershell
+signtool sign /fd SHA256 /a /f cert.pfx /p <password> dist\IFC_Converter\IFC_Converter.exe
+```
+Signing reduces SmartScreen/AV friction for distribution.
+
+## 9. Acceptance (spec §8.4)
+Copy `dist\IFC_Converter\` to a clean Windows VM with **no Python installed**, offline, and run
+`IFC_Converter.exe --selftest` plus a real GUI conversion; capture the signed test report + screenshots.
