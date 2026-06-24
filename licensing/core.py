@@ -6,6 +6,7 @@ CANONICAL serialization of {machine_hash, expiry} (sorted keys, no whitespace) โ
 must produce identical bytes or verification silently fails. PKCS1v15 + SHA-256, `cryptography`
 hazmat only (pycryptodome forbidden by spec ยง10).
 """
+
 from __future__ import annotations
 
 import base64
@@ -33,25 +34,30 @@ def machine_hash() -> str:
 def load_public_key_pem() -> bytes:
     """Load the bundled public key PEM (resolved via _MEIPASS in a frozen build)."""
     from core import paths
+
     with open(paths.public_key(), "rb") as f:
         return f.read()
 
 
 def canonical_payload(machine_hash_: str, expiry: str) -> bytes:
-    return json.dumps({"machine_hash": machine_hash_, "expiry": expiry},
-                      sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return json.dumps(
+        {"machine_hash": machine_hash_, "expiry": expiry}, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
 
 
 def sign_license(private_key, machine_hash_: str, expiry: str) -> dict:
     """VENDOR/test side: produce a license dict signed with the RSA private key."""
-    sig = private_key.sign(canonical_payload(machine_hash_, expiry),
-                           padding.PKCS1v15(), hashes.SHA256())
-    return {"machine_hash": machine_hash_, "expiry": expiry,
-            "signature": base64.b64encode(sig).decode("ascii")}
+    sig = private_key.sign(canonical_payload(machine_hash_, expiry), padding.PKCS1v15(), hashes.SHA256())
+    return {
+        "machine_hash": machine_hash_,
+        "expiry": expiry,
+        "signature": base64.b64encode(sig).decode("ascii"),
+    }
 
 
-def verify_license(license: dict, public_key_pem: bytes, *,
-                   current_machine: str | None = None, today: date | None = None) -> LicenseResult:
+def verify_license(
+    license: dict, public_key_pem: bytes, *, current_machine: str | None = None, today: date | None = None
+) -> LicenseResult:
     """APP side: verify signature, machine binding, and expiry. Returns LicenseResult."""
     current_machine = current_machine or machine_hash()
     today = today or date.today()

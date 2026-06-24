@@ -6,6 +6,7 @@ Vendor key generation (run ONCE, offline). Writes:
 Production uses 4096-bit (spec). Pass a size arg to override (tests use 2048 for speed).
     python tools/keygen.py [bits]
 """
+
 import os
 import sys
 
@@ -18,10 +19,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def main(bits=4096):
     priv = rsa.generate_private_key(public_exponent=65537, key_size=bits)
     pub_pem = priv.public_key().public_bytes(
-        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
+        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+    )
     priv_pem = priv.private_bytes(
-        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
-        serialization.NoEncryption())
+        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()
+    )
 
     pub_path = os.path.join(ROOT, "licensing", "public_key.pem")
     with open(pub_path, "wb") as f:

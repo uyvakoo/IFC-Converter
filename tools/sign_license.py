@@ -3,6 +3,7 @@ Vendor signing tool (offline). Produces a license.key for a customer's machine h
     python tools/sign_license.py <machine_hash> <expiry YYYY-MM-DD> [out=license.key]
 Uses _vendor/private_key.pem. Never ship this script or the private key.
 """
+
 import json
 import os
 import sys

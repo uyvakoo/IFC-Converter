@@ -2,6 +2,7 @@
 Assertion suite for the next-two-up-the-ladder cores: F6 batch + F7 licensing (headless).
     python tests/validate_phaseb.py
 """
+
 from __future__ import annotations
 
 import os
@@ -35,8 +36,13 @@ def check(name, cond, detail=""):
 def f6_batch():
     print("F6  batch orchestration")
     missing = os.path.join(OUT, "_nope.ifc")
-    statuses = batch.run_batch([FIXTURE, missing, FIXTURE], out_dir=OUT, groups=["Structural"],
-                               targets=("glb",), ifcconvert=IFCCONVERT)
+    statuses = batch.run_batch(
+        [FIXTURE, missing, FIXTURE],
+        out_dir=OUT,
+        groups=["Structural"],
+        targets=("glb",),
+        ifcconvert=IFCCONVERT,
+    )
     states = [s.state for s in statuses]
     check("processes all 3 sequentially", len(statuses) == 3)
     check("good/bad/good -> Done,Error,Done", states == ["Done", "Error", "Done"], str(states))
@@ -44,18 +50,27 @@ def f6_batch():
 
     # cooperative cancel: allow file 0, cancel before file 1
     seen = {"n": 0}
+
     def cancel():
         seen["n"] += 1
         return seen["n"] > 1  # False for file 0, True from file 1 on
-    statuses = batch.run_batch([FIXTURE, FIXTURE, FIXTURE], out_dir=OUT, groups=["Structural"],
-                               targets=("glb",), ifcconvert=IFCCONVERT, cancel=cancel)
+
+    statuses = batch.run_batch(
+        [FIXTURE, FIXTURE, FIXTURE],
+        out_dir=OUT,
+        groups=["Structural"],
+        targets=("glb",),
+        ifcconvert=IFCCONVERT,
+        cancel=cancel,
+    )
     states = [s.state for s in statuses]
     check("cancel stops after first file", states == ["Done", "Cancelled", "Cancelled"], str(states))
 
     # fatal: missing binary aborts whole batch
     try:
-        batch.run_batch([FIXTURE], out_dir=OUT, groups=["Structural"],
-                        ifcconvert=os.path.join(ROOT, "bin", "NOPE.exe"))
+        batch.run_batch(
+            [FIXTURE], out_dir=OUT, groups=["Structural"], ifcconvert=os.path.join(ROOT, "bin", "NOPE.exe")
+        )
         check("missing binary raises FatalError", False)
     except FatalError:
         check("missing binary raises FatalError", True)
@@ -66,15 +81,17 @@ def f7_licensing():
     print("F7  licensing (RSA + clock guard)")
     priv = rsa.generate_private_key(public_exponent=65537, key_size=2048)  # 4096 in prod (D-note)
     pub_pem = priv.public_key().public_bytes(
-        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
+        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+    )
     M = "MACHINE-A"
     future = (date.today() + timedelta(days=30)).isoformat()
     past = (date.today() - timedelta(days=1)).isoformat()
 
     good = licensing.sign_license(priv, M, future)
     check("valid license accepted", licensing.verify_license(good, pub_pem, current_machine=M).ok)
-    check("wrong machine rejected",
-          not licensing.verify_license(good, pub_pem, current_machine="MACHINE-B").ok)
+    check(
+        "wrong machine rejected", not licensing.verify_license(good, pub_pem, current_machine="MACHINE-B").ok
+    )
 
     expired = licensing.sign_license(priv, M, past)
     r = licensing.verify_license(expired, pub_pem, current_machine=M)
@@ -82,13 +99,16 @@ def f7_licensing():
 
     tampered = dict(good)
     tampered["expiry"] = (date.today() + timedelta(days=3650)).isoformat()
-    check("tampered payload rejected (sig mismatch)",
-          not licensing.verify_license(tampered, pub_pem, current_machine=M).ok)
+    check(
+        "tampered payload rejected (sig mismatch)",
+        not licensing.verify_license(tampered, pub_pem, current_machine=M).ok,
+    )
 
     other = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     forged = licensing.sign_license(other, M, future)
-    check("foreign-key signature rejected",
-          not licensing.verify_license(forged, pub_pem, current_machine=M).ok)
+    check(
+        "foreign-key signature rejected", not licensing.verify_license(forged, pub_pem, current_machine=M).ok
+    )
 
     # clock guard
     now = datetime(2026, 6, 24, tzinfo=timezone.utc)
@@ -101,6 +121,7 @@ def f7_licensing():
 
 def main():
     import shutil
+
     shutil.rmtree(OUT, ignore_errors=True)
     os.makedirs(OUT, exist_ok=True)
     f6_batch()

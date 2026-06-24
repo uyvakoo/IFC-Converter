@@ -7,6 +7,7 @@ between files), and progress/status callbacks. This is the Qt-free core that the
 QThread worker will wrap — the worker forwards `progress_cb`/`status_cb` to signals and supplies a
 `cancel` backed by a UI flag (never QThread.terminate(), which would corrupt temp files).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -18,14 +19,27 @@ from .errors import FatalError
 @dataclass
 class FileStatus:
     path: str
-    state: str = "Pending"          # Pending | Processing | Done | Error | Cancelled
+    state: str = "Pending"  # Pending | Processing | Done | Error | Cancelled
     result: object = None
     error: str | None = None
 
 
-def run_batch(files, *, out_dir, groups, storey_name=None, xyz=None, targets=("glb",),
-              ifcconvert=None, gltfpack=None, compress=False, simplify=0.5,
-              progress_cb=None, status_cb=None, cancel=None):
+def run_batch(
+    files,
+    *,
+    out_dir,
+    groups,
+    storey_name=None,
+    xyz=None,
+    targets=("glb",),
+    ifcconvert=None,
+    gltfpack=None,
+    compress=False,
+    simplify=0.5,
+    progress_cb=None,
+    status_cb=None,
+    cancel=None,
+):
     """Run the pipeline over `files` sequentially. Returns the list of FileStatus.
 
     Pre-flights bundled binaries once (FatalError aborts the whole batch, §9.3).
@@ -41,7 +55,7 @@ def run_batch(files, *, out_dir, groups, storey_name=None, xyz=None, targets=("g
             if status_cb:
                 status_cb(i, fs)
             # mark the rest cancelled too
-            for fs2 in statuses[i + 1:]:
+            for fs2 in statuses[i + 1 :]:
                 fs2.state = "Cancelled"
             break
         fs.state = "Processing"
@@ -49,9 +63,18 @@ def run_batch(files, *, out_dir, groups, storey_name=None, xyz=None, targets=("g
             status_cb(i, fs)
         try:
             fs.result = pipeline.process(
-                fs.path, out_dir, groups, storey_name=storey_name, xyz=xyz, targets=targets,
-                ifcconvert=ifcconvert, gltfpack=gltfpack, compress=compress, simplify=simplify,
-                progress_cb=(lambda p, idx=i: progress_cb(idx, p)) if progress_cb else None)
+                fs.path,
+                out_dir,
+                groups,
+                storey_name=storey_name,
+                xyz=xyz,
+                targets=targets,
+                ifcconvert=ifcconvert,
+                gltfpack=gltfpack,
+                compress=compress,
+                simplify=simplify,
+                progress_cb=(lambda p, idx=i: progress_cb(idx, p)) if progress_cb else None,
+            )
             fs.state = "Done"
         except FatalError:
             raise  # abort whole batch
