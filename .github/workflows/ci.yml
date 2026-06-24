@@ -73,3 +73,43 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit 1 }
           }
           python -m coverage report --fail-under=80
+
+  package:
+    name: Build bundle (smoke)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Detect packaging spec
+        id: spec
+        shell: pwsh
+        run: |
+          if (Test-Path main.spec) {
+            "present=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            "present=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "no main.spec yet; skipping bundle build"
+          }
+
+      - name: Install hash-locked dependencies
+        if: steps.spec.outputs.present == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.txt
+
+      - name: Fetch native binaries (IfcConvert, gltfpack)
+        if: steps.spec.outputs.present == 'true'
+        run: python scripts/fetch_binaries.py
+
+      - name: Build one-folder bundle (PyInstaller)
+        if: steps.spec.outputs.present == 'true'
+        run: pyinstaller main.spec --noconfirm
+
+      - name: Bundle self-test (loads native libs + binaries from _MEIPASS)
+        if: steps.spec.outputs.present == 'true'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: dist/IFC_Converter/IFC_Converter.exe --selftest
