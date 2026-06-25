@@ -8,6 +8,10 @@ build/
 dist/
 *.spec.bak
 
+# Release packages (produced by release.yml / make_release.ps1)
+IFC_Converter-*.zip
+*.zip.sha256
+
 # Native binaries — fetched via scripts/fetch_binaries.py, never committed
 bin/
 
