@@ -18,6 +18,8 @@ from core.errors import FatalError
 # _MEIPASS-aware so this also works when invoked from the frozen bundle (main.py --cli ...).
 DEFAULT_IFCCONVERT = paths.ifcconvert()
 DEFAULT_GLTFPACK = paths.gltfpack()
+DEFAULT_NODE = paths.node()
+DEFAULT_GLTFPIPELINE = paths.gltf_pipeline()
 
 
 def _output_writable(path: str) -> bool:
@@ -45,10 +47,18 @@ def main(argv=None):
     p.add_argument("--xyz", default=None, help="manual crop box xmin,xmax,ymin,ymax,zmin,zmax")
     p.add_argument("--glb", action="store_true", help="emit GLB")
     p.add_argument("--stp", action="store_true", help="emit STP")
-    p.add_argument("--compress", action="store_true", help="gltfpack decimate+compress the GLB (F5)")
-    p.add_argument("--simplify", type=float, default=0.5, help="gltfpack triangle ratio 0..1")
+    p.add_argument("--compress", action="store_true", help="compress the GLB for AR (F5)")
+    p.add_argument(
+        "--compress-mode",
+        default="meshopt",
+        choices=["meshopt", "quantize", "draco"],
+        help="meshopt/quantize via gltfpack (default); draco via gltf-pipeline (KHR_draco_mesh_compression)",
+    )
+    p.add_argument("--simplify", type=float, default=0.5, help="gltfpack triangle ratio 0..1 (meshopt)")
     p.add_argument("--ifcconvert", default=DEFAULT_IFCCONVERT)
     p.add_argument("--gltfpack", default=DEFAULT_GLTFPACK)
+    p.add_argument("--node", default=DEFAULT_NODE, help="Node runtime (draco mode)")
+    p.add_argument("--gltf-pipeline", dest="gltf_pipeline", default=DEFAULT_GLTFPIPELINE)
     args = p.parse_args(argv)
 
     groups = [g.strip() for g in args.classes.split(",") if g.strip()]
@@ -61,7 +71,10 @@ def main(argv=None):
     try:
         convert.ensure_available(args.ifcconvert)
         if args.compress:
-            convert.ensure_available(args.gltfpack)
+            if args.compress_mode == "draco":
+                convert.ensure_available(args.node, args.gltf_pipeline)
+            else:
+                convert.ensure_available(args.gltfpack)
     except FatalError as e:
         print(f"[FATAL] {e}")
         return 2
@@ -83,6 +96,9 @@ def main(argv=None):
                 ifcconvert=args.ifcconvert,
                 gltfpack=args.gltfpack,
                 compress=args.compress,
+                compress_mode=args.compress_mode,
+                node=args.node,
+                gltf_pipeline=args.gltf_pipeline,
                 simplify=args.simplify,
                 progress_cb=lambda pct: None,
             )

@@ -33,9 +33,14 @@ def compress_glb(
     *,
     mode: str = "meshopt",
     simplify: float = 0.5,
+    node: str | None = None,
     gltf_pipeline: str | None = None,
 ) -> dict:
-    """Optimize `glb_path` in place. Returns {mode, bytes_before, bytes_after, ratio}."""
+    """Optimize `glb_path` in place. Returns {mode, bytes_before, bytes_after, ratio}.
+
+    meshopt/quantize use gltfpack; draco uses `node gltf-pipeline.js -d` (KHR_draco_mesh_compression).
+    Draco compresses the mesh losslessly (no decimation), so `simplify` applies to gltfpack modes only.
+    """
     before = os.path.getsize(glb_path)
     fd, tmp = tempfile.mkstemp(suffix=".glb")
     os.close(fd)
@@ -48,12 +53,13 @@ def compress_glb(
                 cmd += ["-cc"]
             _run(cmd, glb_path, tmp)
         elif mode == "draco":
+            if not node or not os.path.isfile(node):
+                raise RuntimeError(f"draco mode requires the bundled Node runtime (node={node!r})")
             if not gltf_pipeline or not os.path.isfile(gltf_pipeline):
                 raise RuntimeError(
-                    "draco mode requires a bundled gltf-pipeline binary "
-                    "(set gltf_pipeline=...); see D1 open sub-item"
+                    f"draco mode requires the bundled gltf-pipeline (gltf_pipeline={gltf_pipeline!r})"
                 )
-            _run([gltf_pipeline, "-i", glb_path, "-o", tmp, "-d"], glb_path, tmp)
+            _run([node, gltf_pipeline, "-i", glb_path, "-o", tmp, "-d"], glb_path, tmp)
         else:
             raise ValueError(f"unknown compress mode: {mode!r}")
     finally:

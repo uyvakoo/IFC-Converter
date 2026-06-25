@@ -102,6 +102,9 @@ def process(
     ifcconvert=None,
     gltfpack=None,
     compress=False,
+    compress_mode="meshopt",
+    node=None,
+    gltf_pipeline=None,
     simplify=0.5,
     progress_cb=None,
 ) -> Result:
@@ -144,8 +147,15 @@ def process(
             raise
         if "glb" in targets:
             res.glb = convert.to_glb(ifcconvert, temp_ifc, os.path.join(out_dir, stem + ".glb"))
-            if compress and gltfpack:  # F5: AR Draco/decimate post-step (D1)
-                res.compress_stats = postprocess.compress_glb(gltfpack, res.glb, simplify=simplify)
+            if compress:  # F5: AR post-step — gltfpack meshopt (D1) or gltf-pipeline Draco
+                res.compress_stats = postprocess.compress_glb(
+                    gltfpack,
+                    res.glb,
+                    mode=compress_mode,
+                    simplify=simplify,
+                    node=node,
+                    gltf_pipeline=gltf_pipeline,
+                )
             res.glb_bytes = os.path.getsize(res.glb)
         if "stp" in targets:
             res.stp = convert.to_stp(ifcconvert, temp_ifc, os.path.join(out_dir, stem + ".stp"))

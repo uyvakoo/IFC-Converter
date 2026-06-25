@@ -12,6 +12,7 @@ them inside the PyInstaller artifact, not the repo.
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 import tempfile
 import urllib.request
@@ -19,6 +20,10 @@ import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BIN = os.path.join(ROOT, "bin")
+
+# Draco compression (optional, fetched with --with-draco) needs a Node runtime + gltf-pipeline.
+NODE_VERSION = "v20.18.1"
+NODE_URL = f"https://nodejs.org/dist/{NODE_VERSION}/node-{NODE_VERSION}-win-x64.zip"
 
 TARGETS = [
     {
@@ -49,10 +54,46 @@ def fetch(target: dict) -> None:
     print(f"  wrote {dest} ({os.path.getsize(dest):,} bytes)")
 
 
-def main() -> int:
+def fetch_node() -> None:
+    dest = os.path.join(BIN, "node.exe")
+    if os.path.exists(dest) and os.path.getsize(dest) > 0:
+        print("  exists: node.exe")
+        return
+    print(f"  downloading node.exe <- {NODE_URL}")
+    with tempfile.TemporaryDirectory() as tmp:
+        zip_path = os.path.join(tmp, "node.zip")
+        urllib.request.urlretrieve(NODE_URL, zip_path)
+        with zipfile.ZipFile(zip_path) as zf:
+            member = next(n for n in zf.namelist() if n.endswith("/node.exe"))
+            with zf.open(member) as src, open(dest, "wb") as out:
+                out.write(src.read())
+    print(f"  wrote {dest} ({os.path.getsize(dest):,} bytes)")
+
+
+def fetch_gltf_pipeline() -> None:
+    """npm-install gltf-pipeline into bin/gltfpipe (build host needs npm; bundled offline thereafter)."""
+    prefix = os.path.join(BIN, "gltfpipe")
+    entry = os.path.join(prefix, "node_modules", "gltf-pipeline", "bin", "gltf-pipeline.js")
+    if os.path.isfile(entry):
+        print("  exists: gltf-pipeline")
+        return
+    os.makedirs(prefix, exist_ok=True)
+    print("  npm install gltf-pipeline -> bin/gltfpipe")
+    subprocess.run(
+        f'npm install --prefix "{prefix}" gltf-pipeline --no-audit --no-fund',
+        shell=True,
+        check=True,
+    )
+
+
+def main(argv=None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
     os.makedirs(BIN, exist_ok=True)
     for target in TARGETS:
         fetch(target)
+    if "--with-draco" in argv:
+        fetch_node()
+        fetch_gltf_pipeline()
     print("binaries ready in bin/")
     return 0
 
