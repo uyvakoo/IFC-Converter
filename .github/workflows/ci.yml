@@ -108,19 +108,12 @@ jobs:
         if: steps.spec.outputs.present == 'true'
         run: pyinstaller main.spec --noconfirm
 
-      - name: Bundle self-test (loads native libs + binaries from _MEIPASS)
+      - name: Bundle self-test (loads native libs + binaries from _MEIPASS; real IFC->GLB conversion)
         if: steps.spec.outputs.present == 'true'
         env:
           QT_QPA_PLATFORM: offscreen
         run: dist/IFC_Converter/IFC_Converter.exe --selftest
 
-      - name: Acceptance report (§8.4) — real conversions via the frozen exe
-        if: steps.spec.outputs.present == 'true'
-        run: python scripts/acceptance_report.py dist/IFC_Converter/IFC_Converter.exe acceptance_out
-
-      - name: Upload acceptance report
-        if: steps.spec.outputs.present == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: acceptance-report
-          path: acceptance_out/ACCEPTANCE-REPORT.md
+      # The full multi-case acceptance report (scripts/acceptance_report.py) is run locally / for the
+      # §8.4 clean-VM acceptance — not in CI, where the self-test above already proves a real in-bundle
+      # conversion on a clean Windows runner.

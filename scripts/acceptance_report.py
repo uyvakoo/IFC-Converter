@@ -62,14 +62,18 @@ def main():
     for name, fixture, args in CASES:
         ifc = os.path.join(FIX, fixture)
         cmd = [EXE, "--cli", ifc, "--out", OUT] + args
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            rc = r.returncode
+        except subprocess.TimeoutExpired:
+            rc = -1  # treated as failure below
         stem = os.path.splitext(fixture)[0]
         glb = os.path.join(OUT, stem + ".glb")
         stp = os.path.join(OUT, stem + ".stp")
         glb_sz = os.path.getsize(glb) if os.path.exists(glb) else 0
         stp_sz = os.path.getsize(stp) if os.path.exists(stp) else 0
         mats = glb_materials(glb) if glb_sz else None
-        ok = r.returncode == 0 and ("--glb" not in args or (glb_sz > 0 and mats))
+        ok = rc == 0 and ("--glb" not in args or (glb_sz > 0 and mats))
         ok = ok and ("--stp" not in args or stp_sz > 0)
         passed += ok
         rows.append((name, "PASS" if ok else "FAIL", glb_sz, stp_sz, ",".join(m for m in (mats or []) if m)))
