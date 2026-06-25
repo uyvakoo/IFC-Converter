@@ -10,6 +10,7 @@ _ifc_datas, _ifc_bins, _ifc_hidden = collect_all("ifcopenshell")
 hiddenimports = _ifc_hidden + [
     "ifcopenshell.express.express_parser",   # MANDATORY (spec §8.3) or runtime crash
     "ifcopenshell.util.unit",
+    "cli",  # enables `IFC_Converter.exe --cli ...` headless batch conversion
     # NOTE: spec §8.3 also lists "ifcopenshell.geom.serializers" — it does NOT exist in 0.8.5 and is
     # unneeded (serialization is done by the bundled IfcConvert.exe, not Python). Dropped (build defect).
 ]

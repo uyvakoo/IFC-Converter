@@ -14,6 +14,7 @@ def append(report_path: str, row: dict) -> None:
         ("filter", ",".join(row.get("filter") or [])),
         ("entities_processed", row.get("entities_processed")),
         ("entities_removed", row.get("entities_removed")),
+        ("unit_scale_to_m", row.get("unit_scale")),
         ("glb_bytes", row.get("glb_bytes")),
         ("stp_bytes", row.get("stp_bytes")),
         ("elapsed_s", row.get("elapsed_s")),

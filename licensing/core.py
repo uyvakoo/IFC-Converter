@@ -75,5 +75,6 @@ def verify_license(
     except ValueError:
         return LicenseResult(False, "Invalid license - contact vendor")
     if today > exp:
-        return LicenseResult(False, "License expired - contact vendor")
+        # Spec §6.2 step 5: all license-validation failures show the single generic message.
+        return LicenseResult(False, "Invalid license - contact vendor")
     return LicenseResult(True, "")

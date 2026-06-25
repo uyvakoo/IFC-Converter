@@ -9,7 +9,7 @@ is HKCU registry (no admin). This is anti-CASUAL-tamper only — a local admin c
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 
 class InMemoryStore:
@@ -47,14 +47,35 @@ class RegistryStore:
             winreg.SetValueEx(k, self.name, 0, winreg.REG_SZ, value)
 
 
-def check_clock(store, now: datetime | None = None) -> tuple[bool, str]:
-    """Return (ok, reason). Locks if now < stored. Advances stored to max(stored, now)."""
+_TAMPERED = "System clock tampered - license revoked"
+
+
+def ntp_utc(server: str = "pool.ntp.org", timeout: float = 2.0) -> datetime | None:
+    """Best-effort UTC time from an NTP server (spec §6.2). Returns None when unreachable
+    (the air-gapped/offline case), so the caller falls back to the registry check."""
+    try:
+        import ntplib
+
+        resp = ntplib.NTPClient().request(server, version=3, timeout=timeout)
+        return datetime.fromtimestamp(resp.tx_time, tz=timezone.utc)
+    except Exception:
+        return None
+
+
+def check_clock(
+    store, now: datetime | None = None, ntp: datetime | None = None, ntp_tolerance_days: int = 1
+) -> tuple[bool, str]:
+    """Return (ok, reason). Locks if the system clock rolled back vs the registry stamp, or (when an
+    NTP time is supplied) if it sits well behind real time. Advances the stored stamp on success."""
     now = now or datetime.now(timezone.utc)
+    # NTP cross-check (optional): system clock far behind true time => rolled back.
+    if ntp is not None and now < ntp - timedelta(days=ntp_tolerance_days):
+        return False, _TAMPERED
     stored_raw = store.get()
     if stored_raw:
         stored = datetime.fromisoformat(stored_raw)
         if now < stored:
-            return False, "System clock tampered - license revoked"
+            return False, _TAMPERED
         if now > stored:
             store.set(now.isoformat())
     else:

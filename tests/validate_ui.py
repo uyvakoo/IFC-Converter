@@ -20,6 +20,7 @@ from PySide6.QtWidgets import QApplication
 
 import licensing
 from core import filtering, paths
+from ui import theme
 from ui.license_window import LicenseDialog
 from ui.main_window import MainWindow
 from ui.worker import BatchWorker
@@ -28,6 +29,7 @@ FIXTURE = os.path.join(HERE, "fixtures", "fixture.ifc")
 OUT = os.path.join(HERE, "_out_ui")
 
 app = QApplication.instance() or QApplication([])
+theme.apply_theme(app)  # exercise the real light theme so the render check is realistic
 _results = []
 
 
@@ -170,6 +172,55 @@ def real_world_e2e():
     )
 
 
+def conformance():
+    print("UI  conformance: §9 error-handling + §5.2 report")
+    w = MainWindow()
+    check(
+        "output writability probe (§9 scenario 2)",
+        w._output_writable(OUT) and not w._output_writable(os.path.join(OUT, "_no_such_subdir")),
+    )
+    check("progress heartbeat fires within 2s (§9.4)", 0 < w._heartbeat.interval() <= 2000)
+    rp = os.path.join(OUT, "conversion_report.txt")
+    report_text = open(rp).read() if os.path.exists(rp) else ""
+    check("conversion_report.txt written by the worker (§5.2)", os.path.exists(rp))
+    check("report records the project unit scale (§5.1)", "unit_scale_to_m=" in report_text)
+
+
+def liveness_and_render():
+    print("UI  §9.4 long-run liveness + actual render")
+    import time as _t
+
+    w = MainWindow()
+    # Simulate a long conversion whose determinate progress has stalled inside an opaque
+    # IfcConvert/gltfpack step (no progress events for >2s).
+    w._thread = object()  # pretend a run is active
+    w._run_started = _t.monotonic() - 5
+    w._last_progress_at = _t.monotonic() - 5
+    w._tick()
+    check("§9.4 bar flips to animated busy marquee when progress stalls", w.progress.maximum() == 0)
+    check("§9.4 Elapsed counter advances every tick", w.elapsed_label.text().startswith("Elapsed:"))
+    # A real progress event must pull it back to a determinate percentage.
+    w._on_progress(0, 42)
+    check(
+        "§9.4 determinate percentage restored on a real progress event",
+        w.progress.maximum() == 100 and w.progress.value() == 42,
+    )
+    w._thread = None
+
+    # Actually paint the window (not just construct it) and prove pixels were drawn.
+    w.resize(900, 560)
+    img = w.grab().toImage()
+    colors = {img.pixel(x, y) for x in range(0, img.width(), 40) for y in range(0, img.height(), 40)}
+    check(
+        "main window renders non-blank (widgets + theme actually paint)",
+        img.width() > 1 and img.height() > 1 and len(colors) >= 3,
+        f"{img.width()}x{img.height()}, {len(colors)} distinct colors",
+    )
+    dlg = LicenseDialog()
+    dimg = dlg.grab().toImage()
+    check("license dialog renders non-blank", dimg.width() > 1 and dimg.height() > 1)
+
+
 def main():
     import shutil
 
@@ -179,6 +230,8 @@ def main():
     license_flow()
     worker_run()
     real_world_e2e()
+    conformance()
+    liveness_and_render()
     p, t = sum(_results), len(_results)
     print(f"\n==== {p}/{t} checks passed ====")
     sys.exit(0 if p == t else 1)

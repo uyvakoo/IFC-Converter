@@ -95,7 +95,11 @@ def f7_licensing():
 
     expired = licensing.sign_license(priv, M, past)
     r = licensing.verify_license(expired, pub_pem, current_machine=M)
-    check("expired rejected", (not r.ok) and "expired" in r.reason.lower(), r.reason)
+    check(
+        "expired rejected (exact spec message)",
+        (not r.ok) and r.reason == "Invalid license - contact vendor",
+        r.reason,
+    )
 
     tampered = dict(good)
     tampered["expiry"] = (date.today() + timedelta(days=3650)).isoformat()
@@ -143,6 +147,29 @@ def f7_licensing():
                 pass
     else:
         check("registry store (skipped: not Windows)", True)
+
+    # NTP cross-check (§6.2): system clock far behind true time -> tampered.
+    real = now + timedelta(days=30)
+    check(
+        "NTP: clock far behind real time locks",
+        not licensing.check_clock(licensing.InMemoryStore(), now - timedelta(days=2), ntp=real)[0],
+    )
+    check(
+        "NTP: clock within tolerance ok",
+        licensing.check_clock(licensing.InMemoryStore(), now, ntp=now + timedelta(hours=1))[0],
+    )
+    live = licensing.ntp_utc(timeout=3)
+    if live is not None:
+        skew = abs((live - datetime.now(timezone.utc)).total_seconds())
+        check(
+            "live NTP returns UTC near system time", live.tzinfo is not None and skew < 86400, f"{skew:.0f}s"
+        )
+    else:
+        check("live NTP unreachable -> graceful None (air-gapped path)", True)
+
+    # bundled PRODUCTION public key must be 4096-bit (§6.2)
+    bundled = serialization.load_pem_public_key(licensing.load_public_key_pem())
+    check("bundled production key is 4096-bit", bundled.key_size == 4096, str(bundled.key_size))
 
 
 def main():
