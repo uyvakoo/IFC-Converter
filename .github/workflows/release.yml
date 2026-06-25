@@ -1,0 +1,81 @@
+name: Release
+
+# Cut a release by pushing a version tag, e.g.  git tag v0.1.0 && git push origin v0.1.0
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the GitHub Release + upload assets
+
+jobs:
+  release:
+    name: Build & publish Windows bundles
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install hash-locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.txt
+
+      - name: Verify tag matches the app version
+        shell: pwsh
+        run: |
+          $ver = (python -c "import ui; print(ui.APP_VERSION)").Trim()
+          $tag = "${{ github.ref_name }}".TrimStart("v")
+          Write-Host "tag=$tag  APP_VERSION=$ver"
+          if ($ver -ne $tag) { Write-Error "tag '$tag' != ui.APP_VERSION '$ver'"; exit 1 }
+
+      # ---- meshopt-only bundle (default) ---------------------------------------------------------
+      - name: Fetch native binaries (meshopt)
+        run: python scripts/fetch_binaries.py
+
+      - name: Build meshopt bundle
+        run: pyinstaller main.spec --noconfirm --clean
+
+      - name: Self-test meshopt bundle
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: dist/IFC_Converter/IFC_Converter.exe --selftest
+
+      - name: Package meshopt bundle
+        shell: pwsh
+        run: |
+          $zip = "IFC_Converter-${{ github.ref_name }}-win64.zip"
+          Compress-Archive -Path dist/IFC_Converter/* -DestinationPath $zip -Force
+          (Get-FileHash -Algorithm SHA256 $zip).Hash + "  $zip" | Out-File "$zip.sha256" -Encoding ascii
+
+      # ---- Draco-capable bundle (meshopt + gltf-pipeline) ----------------------------------------
+      - name: Fetch native binaries (+ Draco)
+        run: python scripts/fetch_binaries.py --with-draco
+
+      - name: Build Draco bundle
+        run: pyinstaller main.spec --noconfirm --clean
+
+      - name: Self-test Draco bundle
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: dist/IFC_Converter/IFC_Converter.exe --selftest
+
+      - name: Package Draco bundle
+        shell: pwsh
+        run: |
+          $zip = "IFC_Converter-${{ github.ref_name }}-win64-draco.zip"
+          Compress-Archive -Path dist/IFC_Converter/* -DestinationPath $zip -Force
+          (Get-FileHash -Algorithm SHA256 $zip).Hash + "  $zip" | Out-File "$zip.sha256" -Encoding ascii
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: IFC Converter ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            IFC_Converter-${{ github.ref_name }}-win64.zip
+            IFC_Converter-${{ github.ref_name }}-win64.zip.sha256
+            IFC_Converter-${{ github.ref_name }}-win64-draco.zip
+            IFC_Converter-${{ github.ref_name }}-win64-draco.zip.sha256
