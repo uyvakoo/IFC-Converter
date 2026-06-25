@@ -120,6 +120,37 @@ def batch_fatal_aborts():
     check("run_batch re-raises FatalError (whole-run abort)", "disk space" in msg.lower(), msg)
 
 
+def cli_exit_codes():
+    print("§9 cli.main exit codes (in-process: 1 per-file error, 0 success)")
+    import cli
+
+    far = "10000000,10000001,10000000,10000001,10000000,10000001"
+    with tempfile.TemporaryDirectory() as tmp:
+        garbage = os.path.join(tmp, "g.ifc")
+        with open(garbage, "w") as f:
+            f.write("this is not an IFC file\n")
+        missing = os.path.join(tmp, "no_such.ifc")
+
+        def m(args):
+            return cli.main([*args, "--ifcconvert", IFCCONVERT])
+
+        check("corrupt -> exit 1", m([garbage, "--out", os.path.join(tmp, "a"), "--glb"]) == 1)
+        check("missing -> exit 1", m([missing, "--out", os.path.join(tmp, "b"), "--glb"]) == 1)
+        check(
+            "no-match crop -> exit 1",
+            m([FIXTURE, "--out", os.path.join(tmp, "c"), "--xyz", far, "--glb"]) == 1,
+        )
+        check(
+            "all-good -> exit 0",
+            m([FIXTURE, "--out", os.path.join(tmp, "d"), "--classes", "Structural,MEP", "--glb"]) == 0,
+        )
+        check(
+            "batch [bad, good] -> exit 1 (queue continues)",
+            m([garbage, FIXTURE, "--out", os.path.join(tmp, "e"), "--classes", "Structural,MEP", "--glb"])
+            == 1,
+        )
+
+
 def main():
     import shutil
 
@@ -130,6 +161,7 @@ def main():
     scenario_3_disk_full()
     batch_isolation()
     batch_fatal_aborts()
+    cli_exit_codes()
     p, t = sum(_results), len(_results)
     print(f"\n==== {p}/{t} checks passed ====")
     sys.exit(0 if p == t else 1)

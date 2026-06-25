@@ -45,14 +45,25 @@ class Result:
 
 def _open_model(input_path):
     """Open an IFC, mapping missing/corrupt/invalid inputs to a clear FileError (§9.1, scenario 1)."""
+    name = os.path.basename(input_path)
     if not os.path.isfile(input_path):
         raise FileError(f"File not found: {input_path}")
+    # Sniff the STEP/SPF header first. Every conformant IFC-SPF file starts with "ISO-10303-21;".
+    # Rejecting non-IFC bytes here keeps garbage out of the native parser (which can stall or take a
+    # native error path on some hosts) and gives a clean message fast.
+    try:
+        with open(input_path, "rb") as f:
+            head = f.read(4096)
+    except OSError as e:
+        raise FileError(f"Cannot read IFC (corrupt or invalid): {name} — {e}") from e
+    if b"ISO-10303-21" not in head:
+        raise FileError(f"Cannot read IFC (corrupt or invalid): {name} — not an IFC-SPF file")
     try:
         return ifcopenshell.open(input_path)
     except FileError:
         raise
-    except Exception as e:  # ifcopenshell raises bare RuntimeError on garbage/non-IFC input
-        raise FileError(f"Cannot read IFC (corrupt or invalid): {os.path.basename(input_path)} — {e}") from e
+    except Exception as e:  # ifcopenshell raises bare RuntimeError on otherwise-malformed input
+        raise FileError(f"Cannot read IFC (corrupt or invalid): {name} — {e}") from e
 
 
 def _ensure_disk_space(out_dir, input_path):
