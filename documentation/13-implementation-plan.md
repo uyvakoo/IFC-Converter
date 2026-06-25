@@ -1,9 +1,10 @@
 # 13 — Implementation Plan: Features 1–5 (Headless Core Pipeline)
 
-> **Status (2026-06-24):** Phase A **M0–M5 all ✅** — `tests/validate_core.py` **22/22** (incl. M4
-> hardening + M5 gltfpack: real model 27,408→9,248 B). Next-up cores also done: **F6 batch ✅, F7
-> licensing ✅** — `tests/validate_phaseb.py` **13/13**. Remaining = Phase B UI/packaging (see
-> [STATUS.md](STATUS.md) §Next course of action). Code: `core/`, `licensing/`, `cli.py`, `tests/`.
+> **Status — AS-BUILT (2026-06-25):** this plan is **fully delivered and superseded.** Phase A (M0–M5,
+> incl. M5 meshopt **and** real Draco) ✅ — `tests/validate_core.py` **26/26**; Phase B (UI, licensing,
+> packaging) and Phase C (release) ✅ too. Suites: core 26/26, phase-B 20/20, UI 27/27, errors 14/14.
+> Shipped on `main` (PRs #2–#9). The plan below is kept as the historical de-risk roadmap; for current
+> state see [STATUS.md](STATUS.md).
 
 Incremental, de-risk-first plan for the **geometry core** — open → analyze → crop → color → temp →
 IfcConvert (GLB/STP) → gltfpack post — built **headless** (no Qt, no licensing) behind a CLI harness so
