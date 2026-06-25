@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import time
 
 import ifcopenshell
 from PySide6.QtCore import QThread, QTimer
@@ -39,10 +40,13 @@ class MainWindow(QMainWindow):
         self._out_dir: str | None = None
         self._thread: QThread | None = None
         self._worker: BatchWorker | None = None
-        # §9.4: keep the UI alive with a heartbeat at least every 2s during long conversions
-        # (IfcConvert/gltfpack steps are opaque, so real progress can stall between them).
+        # §9.4: keep the UI alive at <= 2s cadence during long conversions. IfcConvert/gltfpack
+        # steps are opaque (no sub-progress), so the heartbeat updates an Elapsed counter and flips
+        # the bar to an animated busy/indeterminate marquee whenever determinate progress stalls.
+        self._run_started = 0.0
+        self._last_progress_at = 0.0
         self._heartbeat = QTimer(self)
-        self._heartbeat.setInterval(2000)
+        self._heartbeat.setInterval(1000)  # fire every 1s -> guaranteed within the 2s minimum
         self._heartbeat.timeout.connect(self._tick)
 
         central = QWidget()
@@ -107,6 +111,9 @@ class MainWindow(QMainWindow):
         lay.addWidget(self.table, 1)
         self.progress = QProgressBar()
         lay.addWidget(self.progress)
+        self.elapsed_label = QLabel("")
+        self.elapsed_label.setObjectName("secondary")
+        lay.addWidget(self.elapsed_label)
         return box
 
     def _build_bottom(self):
@@ -220,7 +227,11 @@ class MainWindow(QMainWindow):
     def _start(self):
         for r in range(self.table.rowCount()):
             self.table.setItem(r, 1, QTableWidgetItem("Pending"))
+        self.progress.setRange(0, 100)
         self.progress.setValue(0)
+        self._run_started = time.monotonic()
+        self._last_progress_at = self._run_started
+        self.elapsed_label.setText("Elapsed: 0s")
         self._worker = BatchWorker(list(self._files), self.build_opts())
         self._thread = QThread()
         self._worker.moveToThread(self._thread)
@@ -235,7 +246,14 @@ class MainWindow(QMainWindow):
         self._heartbeat.start()  # §9.4: guarantee a UI refresh at least every 2s
 
     def _tick(self):
-        # Heartbeat during opaque IfcConvert/gltfpack steps so the UI visibly stays alive.
+        # §9.4 heartbeat (fires every 1s): always advance the Elapsed counter (a guaranteed visible
+        # update), and if determinate progress has stalled >2s (an opaque IfcConvert/gltfpack step),
+        # flip the bar to an animated busy/indeterminate marquee so it visibly shows "still alive".
+        if self._thread is None:
+            return
+        self.elapsed_label.setText(f"Elapsed: {int(time.monotonic() - self._run_started)}s")
+        if time.monotonic() - self._last_progress_at > 2.0 and self.progress.maximum() != 0:
+            self.progress.setRange(0, 0)  # busy marquee (Qt animates it on the main event loop)
         self.progress.update()
 
     def _cancel(self):
@@ -244,7 +262,11 @@ class MainWindow(QMainWindow):
         self.btn_cancel.setEnabled(False)
 
     def _on_progress(self, idx, pct):
+        # A real (determinate) progress event arrived -> leave busy mode and show the percentage.
+        if self.progress.maximum() == 0:
+            self.progress.setRange(0, 100)
         self.progress.setValue(pct)
+        self._last_progress_at = time.monotonic()
 
     def _on_status(self, idx, state, error):
         self.table.setItem(idx, 1, QTableWidgetItem(state if not error else f"Error: {error}"))
@@ -254,6 +276,10 @@ class MainWindow(QMainWindow):
 
     def _on_finished(self):
         self._heartbeat.stop()
+        self.progress.setRange(0, 100)
+        self.progress.setValue(100)
+        if self._run_started:
+            self.elapsed_label.setText(f"Done in {int(time.monotonic() - self._run_started)}s")
         if self._thread:
             self._thread.quit()
             self._thread.wait()
