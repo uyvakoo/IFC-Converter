@@ -109,6 +109,10 @@ def main(argv=None):
                     "status": "Done",
                 },
             )
+        except FatalError as e:  # §9.3: disk full / missing binary -> abort the whole run
+            print(f"[FATAL] {e}")
+            report.append(report_path, {"input": path, "filter": groups, "status": "Fatal", "error": str(e)})
+            return 2
         except Exception as e:  # per-file isolation (spec §9.1)
             rc = 1
             print(f"[ERROR] {os.path.basename(path)}: {e}")
