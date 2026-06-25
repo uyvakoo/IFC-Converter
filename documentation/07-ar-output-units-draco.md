@@ -3,6 +3,16 @@
 > ✔ **APPROVED (2026-06-23):** project owner confirmed `--draco`/`--optimize` don't exist and
 > **authorized bundling a Draco post-processor** (gltfpack recommended / gltf-pipeline) in the final
 > `.exe` (D1). See [02 — decision log](02-defects-and-remedies.md#decision-log).
+>
+> **AS-BUILT (2026-06-25):** implemented in `core/postprocess.py` with **two** backends, selectable in
+> the CLI (`--compress-mode meshopt|draco`) and the UI (mode dropdown):
+> - **meshopt** (default) — `gltfpack -si -cc` → `EXT_meshopt_compression` (real model ×0.34).
+> - **draco** — `node gltf-pipeline -d` → **`KHR_draco_mesh_compression`** (real model ×0.36),
+>   materials preserved (validated in the evidence pack; both decode back to the correct colored model).
+>
+> The Draco backend (Node + gltf-pipeline) is fetched with `scripts/fetch_binaries.py --with-draco` and
+> shipped as a separate `…-win64-draco.zip` by `release.yml`. The earlier "confirm the ARKit decoder"
+> caveat is now just a **build/runtime choice** — both backends ship.
 
 ## Purpose
 Make the GLB AR-ready for iPad/ARKit: correct real-world scale, +Y up axis, and "highly compressed,

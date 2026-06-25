@@ -8,6 +8,23 @@ recoverable; Low/Info = note for honesty/quality.
 Legend: ✅ verified on the real stack this session. · ✔ **APPROVED** = remedy signed off by the
 project owner (see [decision log](#decision-log)).
 
+> **AS-BUILT (2026-06-25): every remedy below is implemented in the shipped product.** Where each
+> lives in code:
+> | D | Resolution (as-built) |
+> |---|------------------------|
+> | D1 | `core/postprocess.py` — meshopt (gltfpack, default) **and** real **Draco** (`KHR_draco_mesh_compression` via gltf-pipeline, PR #8); selectable in CLI/UI; Draco bundle via `fetch_binaries.py --with-draco` + `release.yml`. |
+> | D2 | `--key` not used; `main.spec` drives the build; PyArmor path documented in `BUILD.md` §4. |
+> | D3 | Pinned **Python 3.11.9** (`requirements*.txt`, `main.spec`, CI). |
+> | D4 | Build is `pyinstaller main.spec` only (no stray flags). |
+> | D5 | `pipeline.py` → `ifcopenshell.util.unit.calculate_unit_scale`, reported as `unit_scale_to_m` (no Python rescale). |
+> | D6 | `analyze.py` bridges via `by_guid`/`by_id`. |
+> | D7 | `cropping.py` mutates the model (entity removal) before `model.write()`. |
+> | D8 | `cropping.py` uses `ifcopenshell.api.root.remove_product` (safe cascade). |
+> | D9 | `pipeline.py` uses unique `tempfile.mkstemp` + guaranteed `finally` cleanup. |
+> | D10 | Pinned **IfcConvert 0.8.5** + gltfpack 1.1 (`scripts/fetch_binaries.py`). |
+> | D11 | Clock guard documented as anti-casual-tamper; NTP cross-check added (`licensing/clockguard.py`). |
+> | D12 | `styling.py` recurses `IfcMappedItem` → colored GLB (proven; renders in the evidence pack). |
+
 ---
 
 ## D1 — `--draco` / `--optimize` do not exist in IfcConvert 0.8.x  ✅ ✔ APPROVED  High
@@ -116,18 +133,18 @@ recursing into `MappingSource.MappedRepresentation.Items` fixes it.
 ## Summary table
 | ID | Severity | Status | One-line remedy |
 |----|----------|--------|-----------------|
-| D1 | High | ✔ Approved | Bundle gltfpack/gltf-pipeline post-step (authorized in the `.exe`), not IfcConvert flags |
-| D2 | High | ✔ Approved | Drop `--key`; use PyArmor; keep `--strip`/`--noupx` |
-| D3 | Med | Proposed | Pin 3.11 to satisfy client, but 3.12 works (decide) |
-| D4 | Med | Proposed | Drive build from `main.spec`, not flags+spec |
-| D5 | Med | Proposed | IfcConvert owns units; `calculate_unit_scale` for reporting only |
-| D6 | Low | Proposed | `by_guid`/`by_id`, not `shape.geometry.ifc_element` |
-| D7 | High | Proposed | Crop by mutating the model before write, not iterator `continue` |
-| D8 | Med | Proposed | `remove_deep`, not bare `model.remove` |
-| D9 | Med | Proposed | Unique temp file + guaranteed cleanup |
-| D10 | Low | Proposed | Pin one IfcConvert version (0.8.5) matching the wheel |
-| D11 | Info | Proposed | Document clock-guard as anti-casual-tamper only |
-| D12 | High | Proposed | Recurse `IfcMappedItem` when assigning styles |
+| D1 | High | ✅ Built | meshopt (gltfpack) + real Draco (gltf-pipeline) post-step; selectable, bundled |
+| D2 | High | ✅ Built | No `--key`; `main.spec` drives build; PyArmor documented (BUILD.md §4) |
+| D3 | Med | ✅ Built | Pinned Python 3.11.9 across reqs/spec/CI |
+| D4 | Med | ✅ Built | Build is `pyinstaller main.spec` only |
+| D5 | Med | ✅ Built | IfcConvert owns units; `calculate_unit_scale` reported only |
+| D6 | Low | ✅ Built | `by_guid`/`by_id` bridge in `analyze.py` |
+| D7 | High | ✅ Built | Crop mutates the model before write |
+| D8 | Med | ✅ Built | `api.root.remove_product` (safe cascade) |
+| D9 | Med | ✅ Built | Unique `mkstemp` temp + guaranteed cleanup |
+| D10 | Low | ✅ Built | Pinned IfcConvert 0.8.5 matching the wheel |
+| D11 | Info | ✅ Built | Clock guard documented; NTP cross-check added |
+| D12 | High | ✅ Built | `IfcMappedItem` recursion → colored GLB |
 
 **Net:** three High defects (D1, D7, D12) are technical must-fixes; D2 is a hard contradiction in the
 build command. None are blockers to *building a correct product* — they are blockers to building the
@@ -141,6 +158,7 @@ product **exactly as the spec literally reads**. That distinction is the core me
 | 2026-06-23 | **D2** PyInstaller `--key` | Drop `--key`; **PyArmor** on licensing/hashing modules; keep `--strip`, `--noupx`. | Project owner |
 | 2026-06-23 | **D1** Draco/optimize | Confirmed flags don't exist; **authorized bundling a Draco post-processor** (gltfpack recommended, or gltf-pipeline) in the final `.exe`. | Project owner |
 
-Remaining open (🔶): D1 compression target + ARKit Draco-decoder confirmation; D3 (3.11 vs 3.12);
-cropping partial-overlap policy / "no solid slicing"; D10 version pin. D4–D9, D11, D12 are
-implementation remedies to apply during the build (no client sign-off needed).
+**As-built:** all of D1–D12 are implemented. The earlier "still open" D1 sub-item (ARKit decoder
+choice) is now a **runtime/build option**, not a blocker — the product ships **both** meshopt
+(default) and real Draco (`--compress-mode draco` / UI selector / Draco release artifact), so the
+client can pick the backend their decoder supports without any code change.

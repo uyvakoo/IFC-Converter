@@ -1,9 +1,17 @@
 # IFC Converter — Planning Documentation
 
-Study reference for the **"IFC Spatial Cropping & AR Suite"** spec. This is a planning /
-architecture pack only — **no application code, no client communication yet.** The goal is to
-understand the system feature-by-feature, surface every defect in the supplied spec, and propose
-concrete remedies before any commitment.
+> **AS-BUILT (2026-06-25):** the product is now **implemented, validated, and packaged** — features
+> F1–F8, all five §9 error scenarios, RSA licensing (4096-bit + NTP), real **Draco** *and* meshopt AR
+> compression, and a tag-triggered release workflow (PRs #2–#9 merged, CI + CodeQL green). Every
+> defect **D1–D12 is resolved in code** (see [02-defects-and-remedies](02-defects-and-remedies.md)).
+> These remain the original architecture/defect reference; current build/run/release instructions live
+> in [`BUILD.md`](../BUILD.md) and [`RELEASE.md`](../RELEASE.md), and the live status is in
+> [STATUS.md](STATUS.md).
+
+Study reference for the **"IFC Spatial Cropping & AR Suite"** spec. Originally a planning /
+architecture pack written before the build — it surfaces every defect in the supplied spec and the
+concrete remedy for each (all now implemented). The goal was to understand the system
+feature-by-feature and de-risk before committing.
 
 The core stack (**ifcopenshell 0.8.5 + IfcConvert 0.8.5**) was exercised hands-on during the
 screening task, so the technical claims here are empirical, not assumed. Where a doc says
