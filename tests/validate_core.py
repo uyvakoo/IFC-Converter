@@ -16,7 +16,17 @@ sys.path.insert(0, ROOT)
 import ifcopenshell
 
 import tests.glbtools as glbtools
-from core import analyze, cropping, filtering, pipeline
+from core import analyze, cropping, filtering, paths, pipeline, postprocess
+
+
+def _glb_extensions_required(path):
+    import json
+    import struct
+
+    data = open(path, "rb").read()
+    clen = struct.unpack_from("<I", data, 12)[0]
+    return json.loads(data[20 : 20 + clen]).get("extensionsRequired", [])
+
 
 FIXTURE = os.path.join(HERE, "fixtures", "fixture.ifc")
 REAL = os.path.join(HERE, "fixtures", "real_building.ifc")
@@ -170,6 +180,44 @@ def m5():
     )
 
 
+def m5_draco():
+    print("M5d AR compress — Draco (F5, gltf-pipeline -> KHR_draco_mesh_compression)")
+    import shutil as _sh
+
+    plain = pipeline.process(REAL, OUT, list(filtering.ALL_GROUPS), targets=("glb",), ifcconvert=IFCCONVERT)
+    # Wiring/error path is CI-safe (no Node needed): draco mode must fail clearly without its tools.
+    err = ""
+    try:
+        postprocess.compress_glb(GLTFPACK, plain.glb, mode="draco", node=None, gltf_pipeline=None)
+    except RuntimeError as e:
+        err = str(e)
+    check("draco without Node -> clear error", "Node" in err, err)
+
+    # Real Draco run when a Node + gltf-pipeline is available (bundled via --with-draco, or system Node).
+    node = paths.node() if os.path.isfile(paths.node()) else _sh.which("node")
+    gp = paths.gltf_pipeline()
+    if not (node and os.path.isfile(gp)):
+        print("      skip real Draco run (node/gltf-pipeline not fetched — see fetch_binaries --with-draco)")
+        return
+    comp = pipeline.process(
+        REAL,
+        OUT,
+        list(filtering.ALL_GROUPS),
+        targets=("glb",),
+        ifcconvert=IFCCONVERT,
+        compress=True,
+        compress_mode="draco",
+        node=node,
+        gltf_pipeline=gp,
+    )
+    cs = comp.compress_stats
+    check("draco compress stats (mode=draco)", cs and cs.get("mode") == "draco", str(cs))
+    exts = _glb_extensions_required(comp.glb)
+    check("GLB declares KHR_draco_mesh_compression", "KHR_draco_mesh_compression" in exts, str(exts))
+    check("draco keeps materials/colors", len(glbtools.material_names(comp.glb)) > 0)
+    print(f"      info: bytes {cs['bytes_before']}->{cs['bytes_after']} (x{cs['ratio']})")
+
+
 def main():
     import shutil
 
@@ -180,6 +228,7 @@ def main():
     m3()
     m4()
     m5()
+    m5_draco()
     p = sum(_results)
     t = len(_results)
     print(f"\n==== {p}/{t} checks passed ====")

@@ -36,6 +36,9 @@ def run_batch(
     ifcconvert=None,
     gltfpack=None,
     compress=False,
+    compress_mode="meshopt",
+    node=None,
+    gltf_pipeline=None,
     simplify=0.5,
     progress_cb=None,
     status_cb=None,
@@ -47,7 +50,10 @@ def run_batch(
     """
     convert.ensure_available(ifcconvert)
     if compress:
-        convert.ensure_available(gltfpack)
+        if compress_mode == "draco":
+            convert.ensure_available(node, gltf_pipeline)
+        else:
+            convert.ensure_available(gltfpack)
 
     report_path = os.path.join(out_dir, "conversion_report.txt")
     statuses = [FileStatus(f) for f in files]
@@ -74,6 +80,9 @@ def run_batch(
                 ifcconvert=ifcconvert,
                 gltfpack=gltfpack,
                 compress=compress,
+                compress_mode=compress_mode,
+                node=node,
+                gltf_pipeline=gltf_pipeline,
                 simplify=simplify,
                 progress_cb=(lambda p, idx=i: progress_cb(idx, p)) if progress_cb else None,
             )

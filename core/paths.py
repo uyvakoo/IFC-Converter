@@ -21,5 +21,15 @@ def gltfpack() -> str:
     return resource("bin", "gltfpack.exe")
 
 
+def node() -> str:
+    """Bundled portable Node runtime (only needed for Draco compression)."""
+    return resource("bin", "node.exe")
+
+
+def gltf_pipeline() -> str:
+    """Bundled gltf-pipeline CLI entry (Draco/KHR_draco_mesh_compression); run via node()."""
+    return resource("bin", "gltfpipe", "node_modules", "gltf-pipeline", "bin", "gltf-pipeline.js")
+
+
 def public_key() -> str:
     return resource("licensing", "public_key.pem")

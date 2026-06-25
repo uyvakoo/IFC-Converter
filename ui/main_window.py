@@ -93,9 +93,17 @@ class MainWindow(QMainWindow):
         lay.addWidget(self.xyz_box)
 
         self.cb_stp = QCheckBox("Also export STP")
-        self.cb_compress = QCheckBox("Compress GLB for AR (gltfpack)")
+        self.cb_compress = QCheckBox("Compress GLB for AR")
         lay.addWidget(self.cb_stp)
         lay.addWidget(self.cb_compress)
+        crow = QHBoxLayout()
+        crow.addWidget(QLabel("Mode:"))
+        self.compress_mode_combo = QComboBox()
+        # (label, mode) — meshopt is the default/approved backend; draco = KHR_draco_mesh_compression.
+        for label in ("meshopt (gltfpack)", "draco (gltf-pipeline)"):
+            self.compress_mode_combo.addItem(label)
+        crow.addWidget(self.compress_mode_combo, 1)
+        lay.addLayout(crow)
         lay.addStretch(1)
         return box
 
@@ -218,6 +226,9 @@ class MainWindow(QMainWindow):
             ifcconvert=paths.ifcconvert(),
             gltfpack=paths.gltfpack(),
             compress=self.cb_compress.isChecked(),
+            compress_mode="draco" if self.compress_mode_combo.currentIndex() == 1 else "meshopt",
+            node=paths.node(),
+            gltf_pipeline=paths.gltf_pipeline(),
         )
 
     def _update_start_enabled(self):

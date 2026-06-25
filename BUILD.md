@@ -28,6 +28,15 @@ the install).
 Downloads `IfcConvert.exe` (IfcOpenShell 0.8.5) and `gltfpack.exe` (meshoptimizer 1.1) into `bin\`.
 They are not committed; the PyInstaller bundle embeds them.
 
+**Optional — Draco backend.** The default AR compression is meshopt (gltfpack). To also bundle the
+Draco backend (`KHR_draco_mesh_compression` via gltf-pipeline), fetch it (needs `npm` on the build
+host) and it will be embedded automatically by `main.spec` when present:
+```powershell
+.\.venv\Scripts\python scripts\fetch_binaries.py --with-draco
+```
+This adds a portable `bin\node.exe` and `bin\gltfpipe\` (the gltf-pipeline package). The app then
+offers `--compress-mode draco` (CLI) / the "draco" mode in the UI. Without it, only meshopt is built.
+
 ## 4. (Optional) Obfuscate the licensing modules — production
 Production builds should obfuscate `licensing/` with **PyArmor** (a paid license is required; the
 spec's `--key` option was removed in PyInstaller 6, so PyArmor is the supported path):

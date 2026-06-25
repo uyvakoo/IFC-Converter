@@ -2,6 +2,8 @@
 # PyInstaller one-folder spec (F8). Build:  pyinstaller main.spec
 # Corrected per D2/D4: NO --key (removed in PyInstaller 6.0; use PyArmor on licensing/ separately),
 # everything driven from this spec (not CLI flags), strip + noupx.
+import os
+
 from PyInstaller.utils.hooks import collect_all
 
 # ifcopenshell ships native .pyd + OpenCASCADE DLLs that are not auto-detected — collect everything.
@@ -21,6 +23,17 @@ datas = _ifc_datas + [
     ("bin/gltfpack.exe", "bin"),
     ("licensing/public_key.pem", "licensing"),
 ]
+
+# Optional Draco backend (fetched via fetch_binaries.py --with-draco). Bundled only when present, so
+# the default build is unaffected. node.exe + the gltf-pipeline npm tree power KHR_draco_mesh_compression.
+if os.path.isfile("bin/node.exe"):
+    datas.append(("bin/node.exe", "bin"))
+if os.path.isdir("bin/gltfpipe"):
+    for _root, _dirs, _files in os.walk("bin/gltfpipe"):
+        for _f in _files:
+            _src = os.path.join(_root, _f)
+            datas.append((_src, os.path.relpath(_root, ".")))
+
 binaries = _ifc_bins
 
 a = Analysis(
