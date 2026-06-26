@@ -180,6 +180,14 @@ def conformance():
         w._output_writable(OUT) and not w._output_writable(os.path.join(OUT, "_no_such_subdir")),
     )
     check("progress heartbeat fires within 2s (§9.4)", 0 < w._heartbeat.interval() <= 2000)
+    w._files = [FIXTURE, FIXTURE]
+    w._set_queue_label(1, 73)
+    qt = w.queue_label.text()
+    check(
+        "queue shows position + current file + percent (§4.2)",
+        "2 of 2" in qt and "fixture.ifc" in qt and "73%" in qt,
+        qt,
+    )
     rp = os.path.join(OUT, "conversion_report.txt")
     report_text = open(rp).read() if os.path.exists(rp) else ""
     check("conversion_report.txt written by the worker (§5.2)", os.path.exists(rp))
