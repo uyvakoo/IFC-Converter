@@ -48,3 +48,18 @@ def color_element(model, element, style, stats) -> None:
     for rep in element.Representation.Representations:
         for item in rep.Items:
             _assign_to_item(model, item, style, stats)
+
+
+def strip_material_associations(model) -> int:
+    """Remove all IfcRelAssociatesMaterial so IfcConvert colours by OUR per-group surface styles only.
+
+    Real models attach named materials (e.g. "01 Hout - hardhout", style "Hout- Meranti") whose style
+    IfcConvert would otherwise prefer over our assigned colour — leaving kept elements the wrong colour
+    (spec §3.1 says our colour overrides). Materials aren't needed for the GLB colour (we own it) or the
+    STP solids (geometry only), so dropping the associations is safe and makes our override complete.
+    """
+    n = 0
+    for rel in list(model.by_type("IfcRelAssociatesMaterial")):
+        model.remove(rel)
+        n += 1
+    return n

@@ -254,6 +254,18 @@ def crop_cascade_safe():
         ok, n = False, str(e)
     check("apply() skips an already-removed element (no crash, removes the rest)", ok and n == 1, str(n))
 
+    # filter completeness: a non-group element (e.g. IfcBuildingElementProxy) must be dropped even if
+    # the analyze pass never captured it (real models leak such geometry into the GLB otherwise).
+    m2 = ifcopenshell.file(schema="IFC4")
+    ifcopenshell.api.root.create_entity(m2, ifc_class="IfcWall")  # Structural -> kept
+    ifcopenshell.api.root.create_entity(m2, ifc_class="IfcBuildingElementProxy")  # no group -> dropped
+    nrm = cropping.remove_unselected(m2, ["Structural"])
+    check(
+        "remove_unselected drops non-group proxy, keeps selected class",
+        nrm == 1 and len(m2.by_type("IfcWall")) == 1 and len(m2.by_type("IfcBuildingElementProxy")) == 0,
+        f"removed={nrm}",
+    )
+
 
 def main():
     import shutil

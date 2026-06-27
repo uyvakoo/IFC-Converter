@@ -67,6 +67,27 @@ def keep_guids(model, analysis, selected_groups, box: Box | None) -> set[str]:
     return out
 
 
+def remove_unselected(model, selected_groups) -> int:
+    """Remove every IfcElement whose class is not in a selected group (filter completeness).
+
+    `apply` only removes elements the analyze pass captured; real models also contain geometry the
+    iterator missed (e.g. IfcBuildingElementProxy) that IfcConvert would still render — uncoloured and
+    outside the chosen classes. Dropping anything outside the selected groups keeps the output to only
+    the chosen, coloured geometry (spec §3.1 "the user selects what to keep").
+    """
+    selected = set(selected_groups)
+    removed = 0
+    for el in list(model.by_type("IfcElement")):
+        try:
+            if filtering.group_of(el) in selected:
+                continue
+            ifcopenshell.api.root.remove_product(model, product=el)
+        except RuntimeError:
+            continue  # already removed via a prior cascade
+        removed += 1
+    return removed
+
+
 def apply(model, keep: set[str], analysis) -> int:
     """Remove every analyzed (geometric) element NOT in `keep`. Returns count removed.
 
