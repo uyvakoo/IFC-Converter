@@ -16,7 +16,7 @@ sys.path.insert(0, ROOT)
 import ifcopenshell
 
 import tests.glbtools as glbtools
-from core import analyze, cropping, filtering, paths, pipeline, postprocess
+from core import analyze, cropping, filtering, paths, pipeline, postprocess, styling
 
 
 def _glb_extensions_required(path):
@@ -218,6 +218,22 @@ def m5_draco():
     print(f"      info: bytes {cs['bytes_before']}->{cs['bytes_after']} (x{cs['ratio']})")
 
 
+def schema_compat():
+    print("SC  schema compatibility — styling on IFC2X3 (regression: no Transparency attr)")
+    # IFC2X3's IfcSurfaceStyleShading has no Transparency (added in IFC4). Real-world IFC2x3 models
+    # (e.g. schependomlaan) crashed here before the schema-aware fix.
+    m23 = ifcopenshell.file(schema="IFC2X3")
+    ok23 = True
+    try:
+        s = styling.build_styles(m23)
+    except Exception as e:
+        ok23 = False
+        s = str(e)
+    check("build_styles works on IFC2X3 (4 styles, no crash)", ok23 and len(s) == 4, str(s)[:80])
+    m4 = ifcopenshell.file(schema="IFC4")
+    check("build_styles still works on IFC4 (4 styles)", len(styling.build_styles(m4)) == 4)
+
+
 def main():
     import shutil
 
@@ -229,6 +245,7 @@ def main():
     m4()
     m5()
     m5_draco()
+    schema_compat()
     p = sum(_results)
     t = len(_results)
     print(f"\n==== {p}/{t} checks passed ====")
