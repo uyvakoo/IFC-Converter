@@ -68,13 +68,20 @@ def keep_guids(model, analysis, selected_groups, box: Box | None) -> set[str]:
 
 
 def apply(model, keep: set[str], analysis) -> int:
-    """Remove every analyzed (geometric) element NOT in `keep`. Returns count removed."""
+    """Remove every analyzed (geometric) element NOT in `keep`. Returns count removed.
+
+    On real models a `remove_product` can cascade dependents (aggregated/nested/voided elements), so a
+    later target may already be gone — `by_guid` then *raises* (it does not return None). Guard it and
+    skip the already-removed instance instead of crashing the whole file.
+    """
     removed = 0
     for guid in list(analysis.elements):
         if guid in keep:
             continue
-        el = model.by_guid(guid)
-        if el is not None:
-            ifcopenshell.api.root.remove_product(model, product=el)  # clean product removal
-            removed += 1
+        try:
+            el = model.by_guid(guid)
+        except RuntimeError:
+            continue  # already removed via a prior cascade (nested/aggregated/voided element)
+        ifcopenshell.api.root.remove_product(model, product=el)  # clean product removal
+        removed += 1
     return removed

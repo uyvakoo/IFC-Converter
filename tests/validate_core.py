@@ -234,6 +234,27 @@ def schema_compat():
     check("build_styles still works on IFC4 (4 styles)", len(styling.build_styles(m4)) == 4)
 
 
+def crop_cascade_safe():
+    print("CR  crop apply() survives a cascade-removed element (real-model regression)")
+    import types
+
+    import ifcopenshell.api.root
+
+    # Real models (e.g. schependomlaan) crashed here: removing a product cascaded a dependent, then
+    # by_guid for the already-gone guid raised "Instance with GlobalId not found".
+    m = ifcopenshell.file(schema="IFC4")
+    w1 = ifcopenshell.api.root.create_entity(m, ifc_class="IfcWall")
+    w2 = ifcopenshell.api.root.create_entity(m, ifc_class="IfcWall")
+    fake = types.SimpleNamespace(elements={w1.GlobalId: None, w2.GlobalId: None})
+    ifcopenshell.api.root.remove_product(m, product=w1)  # simulate a prior cascade removal
+    ok, n = True, None
+    try:
+        n = cropping.apply(m, set(), fake)  # must not raise on the now-missing w1
+    except Exception as e:
+        ok, n = False, str(e)
+    check("apply() skips an already-removed element (no crash, removes the rest)", ok and n == 1, str(n))
+
+
 def main():
     import shutil
 
@@ -246,6 +267,7 @@ def main():
     m5()
     m5_draco()
     schema_compat()
+    crop_cascade_safe()
     p = sum(_results)
     t = len(_results)
     print(f"\n==== {p}/{t} checks passed ====")
