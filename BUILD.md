@@ -65,13 +65,16 @@ The bundle can also run **headless batch conversions** (no GUI):
 .\dist\IFC_Converter\IFC_Converter.exe --cli model.ifc --out out --classes Structural,MEP --glb --stp --compress
 ```
 
-### Acceptance report (§8.4, automatable part)
-Drive the built bundle through a battery of real conversions and emit a Markdown report:
+### Acceptance / §8.4 test report
+Drive the built bundle through real conversions and emit the signable §8.4 test report:
 ```powershell
 .\.venv\Scripts\python scripts\acceptance_report.py .\dist\IFC_Converter\IFC_Converter.exe acceptance_out
 ```
-Produces `acceptance_out\ACCEPTANCE-REPORT.md`. CI runs this on a clean Windows runner and uploads it as
-an artifact. The **clean-VM run, screenshots, and human signature** remain manual (step 9).
+Produces `acceptance_out\ACCEPTANCE-REPORT.md` with the **bundle SHA256**, the `--selftest` result, the
+real-conversion table, and a **clean-VM checklist + sign-off block**. Run it once **on the clean VM**
+(step 9), tick the checklist, attach the GUI/output screenshots, and sign. (Not run in CI — repeatedly
+launching the windowed bundle on a headless runner can stall; the package job's `--selftest` is the CI
+gate.)
 
 ## 7. Air-gapped install (no internet on the target)
 On a networked machine with the same OS + Python 3.11:

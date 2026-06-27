@@ -11,6 +11,7 @@ of the §8.4 artifact; the contractual clean-VM run + screenshots + human signat
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import platform
@@ -56,8 +57,27 @@ def glb_materials(path):
     return [m.get("name") for m in json.loads(data[20 : 20 + clen]).get("materials", [])]
 
 
+def sha256(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def run_selftest():
+    env = dict(os.environ, QT_QPA_PLATFORM="offscreen")
+    r = subprocess.run([EXE, "--selftest"], capture_output=True, text=True, env=env, timeout=120)
+    out = (r.stdout or "") + (r.stderr or "")
+    line = next((ln for ln in out.splitlines() if "selftest:" in ln), out.strip().splitlines()[-1:] or "")
+    return r.returncode == 0, (line if isinstance(line, str) else "selftest output unavailable")
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
+    st_ok, st_line = run_selftest()
+    exe_sha = sha256(EXE)
+    gen = datetime.now(timezone.utc).isoformat(timespec="seconds")
     rows, passed = [], 0
     for name, fixture, args in CASES:
         ifc = os.path.join(FIX, fixture)
@@ -81,10 +101,12 @@ def main():
     lines = [
         "# IFC Converter — Acceptance Report (§8.4)",
         "",
-        f"- Generated: {datetime.now(timezone.utc).isoformat(timespec='seconds')}",
+        f"- Generated: {gen}",
         f"- Host: {platform.platform()} / Python {platform.python_version()}",
         f"- Bundle under test: `{os.path.basename(EXE)}`",
-        f"- Result: **{passed}/{len(CASES)} cases passed**",
+        f"- Bundle SHA256: `{exe_sha}`",
+        f"- Self-test: **{'PASS' if st_ok else 'FAIL'}** — `{st_line.strip()}`",
+        f"- Conversions: **{passed}/{len(CASES)} cases passed**",
         "",
         "All conversions below were executed by the **built bundle** (`--cli`), not the dev tree.",
         "",
@@ -95,16 +117,34 @@ def main():
         lines.append(f"| {name} | {res} | {g or '-'} | {s or '-'} | {m or '-'} |")
     lines += [
         "",
-        "## Manual residual (owner)",
-        "- Run this bundle on a **clean Windows VM with no Python, offline**, plus a GUI conversion.",
-        "- Capture **screenshots** and **sign** this report. See `BUILD.md` §9.",
+        "## §8.4 clean-VM acceptance checklist",
+        "Run this report **on a fresh Windows 10/11 VM with no Python installed, offline**, then tick:",
+        "",
+        "- [ ] Copied `dist/IFC_Converter/` to the clean VM; `IFC_Converter.exe` launches (no Python).",
+        "- [ ] `IFC_Converter.exe --selftest` prints `selftest: 9/9 OK` (technical result above).",
+        "- [ ] License Activation window shows the machine hash; a signed license activates the app.",
+        "- [ ] A real GUI conversion (GLB + STP) completes; the colored model opens in a glTF viewer.",
+        "- [ ] Screenshots of the GUI + output captured and attached alongside this report.",
+        "",
+        "## Sign-off",
+        "| Field | Value |",
+        "|-------|-------|",
+        "| Tester (name) | __________________________ |",
+        "| Date | __________________________ |",
+        "| Clean VM (OS / build) | __________________________ |",
+        "| Python absent on VM? | ☐ confirmed |",
+        "| Result | ☐ PASS  ☐ FAIL |",
+        "| Signature | __________________________ |",
+        "",
+        f"_Auto-filled technical section generated {gen}; "
+        "the checklist + sign-off are completed by hand on the clean VM (spec §8.4)._",
         "",
     ]
     report = os.path.join(OUT, "ACCEPTANCE-REPORT.md")
     with open(report, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
-    print(f"{passed}/{len(CASES)} cases passed -> {report}")
-    return 0 if passed == len(CASES) else 1
+    print(f"selftest {'PASS' if st_ok else 'FAIL'}; {passed}/{len(CASES)} cases passed -> {report}")
+    return 0 if (st_ok and passed == len(CASES)) else 1
 
 
 if __name__ == "__main__":

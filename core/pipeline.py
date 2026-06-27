@@ -125,15 +125,24 @@ def process(
     if res.kept == 0:  # §9 scenario 5: nothing matched the classes/crop -> clear FileError, no empty GLB
         raise FileError("No elements matched the selected classes / crop region — nothing to export")
     res.removed = cropping.apply(model, keep, analysis)
+    # Also drop any element outside the selected classes that the analyze pass missed (real models
+    # carry geometry — e.g. IfcBuildingElementProxy — IfcConvert would otherwise render uncoloured).
+    res.removed += cropping.remove_unselected(model, selected_groups)
 
     styles = styling.build_styles(model)
     stats = {"items": 0, "mapped": 0}
-    for guid in keep:
-        el = model.by_guid(guid)
+    # Colour by the class filter over the SURVIVING elements — not the analyze-based keep set. Real
+    # models contain selected-class geometry the iterator missed (e.g. some IFC2x3 IfcWallStandardCase);
+    # those survive the crop and must still get our colour, not fall back to their material/class name.
+    selected = set(selected_groups)
+    for el in model.by_type("IfcElement"):
         group = filtering.group_of(el)
-        if group:
+        if group in selected:
             styling.color_element(model, el, styles[group], stats)
     res.style_stats = stats
+    # §3.1: our colours must override existing named materials — drop material associations so
+    # IfcConvert colours by our surface styles only (real models otherwise keep e.g. "Hout- Meranti").
+    styling.strip_material_associations(model)
 
     stem = os.path.splitext(os.path.basename(input_path))[0]
     fd, temp_ifc = tempfile.mkstemp(suffix=".ifc", prefix=f"{stem}_")

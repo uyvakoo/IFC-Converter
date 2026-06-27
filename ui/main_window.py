@@ -117,6 +117,8 @@ class MainWindow(QMainWindow):
         self.table.setHorizontalHeaderLabels(["File", "Status"])
         self.table.horizontalHeader().setStretchLastSection(True)
         lay.addWidget(self.table, 1)
+        self.queue_label = QLabel("")  # §4.2: queue position + current file name
+        lay.addWidget(self.queue_label)
         self.progress = QProgressBar()
         lay.addWidget(self.progress)
         self.elapsed_label = QLabel("")
@@ -243,6 +245,8 @@ class MainWindow(QMainWindow):
         self._run_started = time.monotonic()
         self._last_progress_at = self._run_started
         self.elapsed_label.setText("Elapsed: 0s")
+        self._cur_idx = 0  # §4.2 queue position
+        self.queue_label.setText(f"Queued: {len(self._files)} file(s)")
         self._worker = BatchWorker(list(self._files), self.build_opts())
         self._thread = QThread()
         self._worker.moveToThread(self._thread)
@@ -278,9 +282,19 @@ class MainWindow(QMainWindow):
             self.progress.setRange(0, 100)
         self.progress.setValue(pct)
         self._last_progress_at = time.monotonic()
+        self._set_queue_label(idx, pct)
 
     def _on_status(self, idx, state, error):
         self.table.setItem(idx, 1, QTableWidgetItem(state if not error else f"Error: {error}"))
+        if state == "Processing":
+            self._set_queue_label(idx)
+
+    def _set_queue_label(self, idx, pct=None):
+        # §4.2: show queue position, current file name, and percentage.
+        total = len(self._files)
+        name = os.path.basename(self._files[idx]) if 0 <= idx < total else ""
+        tail = f" — {pct}%" if pct is not None else ""
+        self.queue_label.setText(f"Processing {idx + 1} of {total}: {name}{tail}")
 
     def _on_fatal(self, msg):
         QMessageBox.critical(self, "Fatal", msg)
@@ -289,6 +303,7 @@ class MainWindow(QMainWindow):
         self._heartbeat.stop()
         self.progress.setRange(0, 100)
         self.progress.setValue(100)
+        self.queue_label.setText(f"Finished {len(self._files)} file(s)")
         if self._run_started:
             self.elapsed_label.setText(f"Done in {int(time.monotonic() - self._run_started)}s")
         if self._thread:

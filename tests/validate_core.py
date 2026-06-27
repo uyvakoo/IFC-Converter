@@ -16,7 +16,7 @@ sys.path.insert(0, ROOT)
 import ifcopenshell
 
 import tests.glbtools as glbtools
-from core import analyze, cropping, filtering, paths, pipeline, postprocess
+from core import analyze, cropping, filtering, paths, pipeline, postprocess, styling
 
 
 def _glb_extensions_required(path):
@@ -218,6 +218,55 @@ def m5_draco():
     print(f"      info: bytes {cs['bytes_before']}->{cs['bytes_after']} (x{cs['ratio']})")
 
 
+def schema_compat():
+    print("SC  schema compatibility — styling on IFC2X3 (regression: no Transparency attr)")
+    # IFC2X3's IfcSurfaceStyleShading has no Transparency (added in IFC4). Real-world IFC2x3 models
+    # (e.g. schependomlaan) crashed here before the schema-aware fix.
+    m23 = ifcopenshell.file(schema="IFC2X3")
+    ok23 = True
+    try:
+        s = styling.build_styles(m23)
+    except Exception as e:
+        ok23 = False
+        s = str(e)
+    check("build_styles works on IFC2X3 (4 styles, no crash)", ok23 and len(s) == 4, str(s)[:80])
+    m4 = ifcopenshell.file(schema="IFC4")
+    check("build_styles still works on IFC4 (4 styles)", len(styling.build_styles(m4)) == 4)
+
+
+def crop_cascade_safe():
+    print("CR  crop apply() survives a cascade-removed element (real-model regression)")
+    import types
+
+    import ifcopenshell.api.root
+
+    # Real models (e.g. schependomlaan) crashed here: removing a product cascaded a dependent, then
+    # by_guid for the already-gone guid raised "Instance with GlobalId not found".
+    m = ifcopenshell.file(schema="IFC4")
+    w1 = ifcopenshell.api.root.create_entity(m, ifc_class="IfcWall")
+    w2 = ifcopenshell.api.root.create_entity(m, ifc_class="IfcWall")
+    fake = types.SimpleNamespace(elements={w1.GlobalId: None, w2.GlobalId: None})
+    ifcopenshell.api.root.remove_product(m, product=w1)  # simulate a prior cascade removal
+    ok, n = True, None
+    try:
+        n = cropping.apply(m, set(), fake)  # must not raise on the now-missing w1
+    except Exception as e:
+        ok, n = False, str(e)
+    check("apply() skips an already-removed element (no crash, removes the rest)", ok and n == 1, str(n))
+
+    # filter completeness: a non-group element (e.g. IfcBuildingElementProxy) must be dropped even if
+    # the analyze pass never captured it (real models leak such geometry into the GLB otherwise).
+    m2 = ifcopenshell.file(schema="IFC4")
+    ifcopenshell.api.root.create_entity(m2, ifc_class="IfcWall")  # Structural -> kept
+    ifcopenshell.api.root.create_entity(m2, ifc_class="IfcBuildingElementProxy")  # no group -> dropped
+    nrm = cropping.remove_unselected(m2, ["Structural"])
+    check(
+        "remove_unselected drops non-group proxy, keeps selected class",
+        nrm == 1 and len(m2.by_type("IfcWall")) == 1 and len(m2.by_type("IfcBuildingElementProxy")) == 0,
+        f"removed={nrm}",
+    )
+
+
 def main():
     import shutil
 
@@ -229,6 +278,8 @@ def main():
     m4()
     m5()
     m5_draco()
+    schema_compat()
+    crop_cascade_safe()
     p = sum(_results)
     t = len(_results)
     print(f"\n==== {p}/{t} checks passed ====")
