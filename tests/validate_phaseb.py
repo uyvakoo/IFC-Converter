@@ -114,6 +114,27 @@ def f7_licensing():
         "foreign-key signature rejected", not licensing.verify_license(forged, pub_pem, current_machine=M).ok
     )
 
+    # verify_file (on-disk key path)
+    import json as _json
+    import tempfile as _tmp
+
+    check("verify_file: no path rejected", not licensing.verify_file(None).ok)
+    with _tmp.TemporaryDirectory() as _td:
+        check("verify_file: missing file rejected", not licensing.verify_file(os.path.join(_td, "x.key")).ok)
+        import licensing.core as _lc
+
+        _op, _om = _lc.load_public_key_pem, _lc.machine_hash
+        _lc.load_public_key_pem, _lc.machine_hash = (lambda: pub_pem), (lambda: M)
+        try:
+            gp = os.path.join(_td, "good.key")
+            open(gp, "w", encoding="utf-8").write(_json.dumps(good))
+            check("verify_file: valid key file for this machine accepted", licensing.verify_file(gp).ok)
+            fp = os.path.join(_td, "forged.key")
+            open(fp, "w", encoding="utf-8").write(_json.dumps(forged))
+            check("verify_file: foreign key file rejected", not licensing.verify_file(fp).ok)
+        finally:
+            _lc.load_public_key_pem, _lc.machine_hash = _op, _om
+
     # clock guard
     now = datetime(2026, 6, 24, tzinfo=timezone.utc)
     store = licensing.InMemoryStore()

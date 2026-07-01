@@ -55,6 +55,19 @@ def sign_license(private_key, machine_hash_: str, expiry: str) -> dict:
     }
 
 
+def verify_file(path: str | None) -> LicenseResult:
+    """Verify a license file on disk for THIS machine. Any problem — missing/unreadable path, invalid
+    JSON, bad signature, wrong machine, expired — returns the single generic failure."""
+    if not path:
+        return LicenseResult(False, "Invalid license - contact vendor")
+    try:
+        with open(path, encoding="utf-8") as f:
+            lic = json.load(f)
+    except (OSError, ValueError):
+        return LicenseResult(False, "Invalid license - contact vendor")
+    return verify_license(lic, load_public_key_pem(), current_machine=machine_hash())
+
+
 def verify_license(
     license: dict, public_key_pem: bytes, *, current_machine: str | None = None, today: date | None = None
 ) -> LicenseResult:
