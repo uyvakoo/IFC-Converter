@@ -132,6 +132,9 @@ def f7_licensing():
             fp = os.path.join(_td, "forged.key")
             open(fp, "w", encoding="utf-8").write(_json.dumps(forged))
             check("verify_file: foreign key file rejected", not licensing.verify_file(fp).ok)
+            bp = os.path.join(_td, "bad.key")
+            open(bp, "w", encoding="utf-8").write("[1, 2, 3]")  # valid JSON, not an object
+            check("verify_file: non-object JSON rejected (no crash)", not licensing.verify_file(bp).ok)
         finally:
             _lc.load_public_key_pem, _lc.machine_hash = _op, _om
 

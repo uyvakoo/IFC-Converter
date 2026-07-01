@@ -65,6 +65,8 @@ def verify_file(path: str | None) -> LicenseResult:
             lic = json.load(f)
     except (OSError, ValueError):
         return LicenseResult(False, "Invalid license - contact vendor")
+    if not isinstance(lic, dict):
+        return LicenseResult(False, "Invalid license - contact vendor")
     return verify_license(lic, load_public_key_pem(), current_machine=machine_hash())
 
 
