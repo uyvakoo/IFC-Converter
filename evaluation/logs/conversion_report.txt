@@ -1,0 +1,1 @@
+timestamp=2026-07-01T22:00:34+00:00 | input=C:\Users\Administrator\Downloads\sample-large-building.ifc | crop=none | filter=Structural,Cables,Architectural,MEP | entities_processed=10 | entities_removed=8 | unit_scale_to_m=0.001 | glb_bytes=27408 | stp_bytes=1047113 | elapsed_s=3.673 | status=Done

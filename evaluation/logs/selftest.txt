@@ -1,0 +1,10 @@
+  OK   ifcopenshell 0.8.5 imports (native libs)
+  OK   IfcConvert bundled
+  OK   gltfpack bundled
+  OK   public_key bundled
+  OK   IfcConvert runs
+  OK   public key loads
+  OK   real IFC -> GLB conversion (IfcConvert + gltfpack)
+  OK   converted GLB carries the 'Structural' material
+  OK   Qt + UI construct (offscreen)
+selftest: 9/9 OK
