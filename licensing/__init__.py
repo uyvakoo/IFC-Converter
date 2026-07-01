@@ -13,6 +13,7 @@ from .core import (
     load_public_key_pem,
     machine_hash,
     sign_license,
+    verify_file,
     verify_license,
 )
 
@@ -22,6 +23,7 @@ __all__ = [
     "canonical_payload",
     "sign_license",
     "verify_license",
+    "verify_file",
     "load_public_key_pem",
     "InMemoryStore",
     "RegistryStore",

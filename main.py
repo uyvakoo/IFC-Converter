@@ -113,11 +113,26 @@ def main():
     if "--selftest" in sys.argv:
         return selftest()
     if "--cli" in sys.argv:
-        # Headless batch conversion from the frozen bundle, e.g.:
-        #   IFC_Converter.exe --cli model.ifc --out out --classes Structural,MEP --glb --stp --compress
+        # Headless batch conversion from the frozen bundle. A valid key for this machine is required
+        # (pass --license <path>), e.g.:
+        #   IFC_Converter.exe --cli model.ifc --out out --classes Structural,MEP --glb --license C:\key.key
+        import licensing
+
+        args = [a for a in sys.argv[1:] if a != "--cli"]
+        lic_path = None
+        if "--license" in args:
+            i = args.index("--license")
+            if i + 1 < len(args):
+                lic_path = args[i + 1]
+                del args[i : i + 2]
+        result = licensing.verify_file(lic_path)
+        if not result.ok:
+            print(result.reason)
+            return 2
+
         import cli
 
-        return cli.main([a for a in sys.argv[1:] if a != "--cli"])
+        return cli.main(args)
 
     from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
