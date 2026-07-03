@@ -234,6 +234,55 @@ def liveness_and_render():
     check("license dialog renders non-blank", dimg.width() > 1 and dimg.height() > 1)
 
 
+def close_during_conversion():
+    """§9.5: closing the app mid-conversion must prompt; No aborts the close, Yes cancels gracefully."""
+    from PySide6.QtCore import QThread
+    from PySide6.QtWidgets import QMessageBox
+
+    print("§9.5 close-during-conversion confirmation")
+    w = MainWindow()
+
+    class _Ev:
+        def __init__(self):
+            self.accepted = None
+
+        def accept(self):
+            self.accepted = True
+
+        def ignore(self):
+            self.accepted = False
+
+    cancelled = {"n": 0}
+
+    class _Worker:
+        def cancel(self):
+            cancelled["n"] += 1
+
+    # simulate a run in progress
+    w._thread = QThread()
+    w._worker = _Worker()
+
+    orig = QMessageBox.question
+    try:
+        QMessageBox.question = staticmethod(lambda *a, **k: QMessageBox.StandardButton.No)
+        ev = _Ev()
+        w.closeEvent(ev)
+        check("running + 'No' -> close ignored, no cancel", ev.accepted is False and cancelled["n"] == 0)
+
+        QMessageBox.question = staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes)
+        ev = _Ev()
+        w.closeEvent(ev)
+        check("running + 'Yes' -> cancelled + accepted", ev.accepted is True and cancelled["n"] == 1)
+    finally:
+        QMessageBox.question = orig
+        w._thread = None
+        w._worker = None
+
+    ev = _Ev()  # idle -> closes immediately, no prompt
+    w.closeEvent(ev)
+    check("idle -> closes without prompt", ev.accepted is True)
+
+
 def main():
     import shutil
 
@@ -245,6 +294,7 @@ def main():
     real_world_e2e()
     conformance()
     liveness_and_render()
+    close_during_conversion()
     p, t = sum(_results), len(_results)
     print(f"\n==== {p}/{t} checks passed ====")
     sys.exit(0 if p == t else 1)
