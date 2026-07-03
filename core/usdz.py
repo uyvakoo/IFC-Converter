@@ -153,9 +153,7 @@ def _meshes_from_glb(gltf: dict, buf: bytes) -> list[_Mesh]:
                     idx = _accessor(gltf, buf, prim["indices"]).reshape(-1).astype(np.int64)
                 else:
                     idx = np.arange(len(world_pos), dtype=np.int64)
-                meshes.append(
-                    _Mesh(f"mesh_{counter}", world_pos, idx, _material_color(gltf, prim))
-                )
+                meshes.append(_Mesh(f"mesh_{counter}", world_pos, idx, _material_color(gltf, prim)))
                 counter += 1
         for c in node.get("children", []):
             stack.append((c, world))
@@ -192,7 +190,7 @@ def _usda(meshes: list[_Mesh]) -> str:
             f"        int[] faceVertexIndices = [{idx}]",
             f"        point3f[] points = [{_fmt_floats(m.points)}]",
             f"        color3f[] primvars:displayColor = [({m.color[0]:.4g}, {m.color[1]:.4g}, "
-            f"{m.color[2]:.4g})] (interpolation = \"constant\")",
+            f'{m.color[2]:.4g})] (interpolation = "constant")',
             '        uniform token subdivisionScheme = "none"',
             "    }",
         ]

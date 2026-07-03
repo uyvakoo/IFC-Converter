@@ -60,10 +60,17 @@ bundling of `bin\` and `licensing\public_key.pem`, `strip`, `noupx`).
 The self-test loads the native libraries from `_MEIPASS` and performs a **real IFC → GLB conversion**
 (IfcConvert + gltfpack) — it should print `selftest: 9/9 OK`.
 
-The bundle can also run **headless batch conversions** (no GUI):
+The bundle can also run **headless batch conversions** (no GUI). The frozen `--cli` requires a valid
+machine-locked license key (`--license`, hardened in PR #14):
 ```powershell
-.\dist\IFC_Converter\IFC_Converter.exe --cli model.ifc --out out --classes Structural,MEP --glb --stp --compress
+.\dist\IFC_Converter\IFC_Converter.exe --cli model.ifc --out out --classes Structural,MEP `
+    --glb --stp --usdz --compress --license C:\key.key
 ```
+
+**AR outputs.** `--glb` (glTF, meshopt/Draco-compressible) and `--usdz` (Apple ARKit / Quick Look) are
+both Y-up and carry the four group colours. USDZ is produced by `core/usdz.py` directly from the GLB —
+**no extra dependency or bundled binary** (it authors USD + packages a spec-compliant `.usdz` in-process),
+so nothing needs adding to the build. STP (`--stp`) is CAD-grade solid geometry via IfcConvert.
 
 ### Acceptance / §8.4 test report
 Drive the built bundle through real conversions and emit the signable §8.4 test report:
