@@ -93,8 +93,10 @@ class MainWindow(QMainWindow):
         lay.addWidget(self.xyz_box)
 
         self.cb_stp = QCheckBox("Also export STP")
+        self.cb_usdz = QCheckBox("Also export USDZ (iOS AR)")
         self.cb_compress = QCheckBox("Compress GLB for AR")
         lay.addWidget(self.cb_stp)
+        lay.addWidget(self.cb_usdz)
         lay.addWidget(self.cb_compress)
         crow = QHBoxLayout()
         crow.addWidget(QLabel("Mode:"))
@@ -214,7 +216,11 @@ class MainWindow(QMainWindow):
         return [g for g, cb in self.group_checks.items() if cb.isChecked()]
 
     def build_opts(self):
-        targets = ("glb",) + (("stp",) if self.cb_stp.isChecked() else ())
+        targets = (
+            ("glb",)
+            + (("stp",) if self.cb_stp.isChecked() else ())
+            + (("usdz",) if self.cb_usdz.isChecked() else ())
+        )
         xyz = None
         if self.xyz_toggle.isChecked():
             xyz = [self.xyz_spins[k].value() for k in ("xmin", "xmax", "ymin", "ymax", "zmin", "zmax")]

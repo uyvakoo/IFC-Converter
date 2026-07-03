@@ -99,6 +99,7 @@ def run_batch(
                     "unit_scale": r.unit_scale,
                     "glb_bytes": r.glb_bytes,
                     "stp_bytes": r.stp_bytes,
+                    "usdz_bytes": r.usdz_bytes,
                     "elapsed_s": r.elapsed_s,
                     "status": "Done",
                 },
