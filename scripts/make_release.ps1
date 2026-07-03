@@ -13,21 +13,28 @@
 param(
   [ValidateSet("meshopt", "draco")][string]$Variant = "meshopt",
   [string]$Tag = "v0.1.0",
-  [switch]$SkipBuild
+  [switch]$SkipBuild,
+  [switch]$Obfuscate   # Cython-compile licensing/ to .pyd first (production; removes licensing .py — use a fresh checkout)
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
 if (-not $SkipBuild) {
-  Write-Host "[1/3] fetch binaries ($Variant)"
+  Write-Host "[1/4] fetch binaries ($Variant)"
   if ($Variant -eq "draco") { python scripts/fetch_binaries.py --with-draco }
   else { python scripts/fetch_binaries.py }
 
-  Write-Host "[2/3] build bundle"
+  if ($Obfuscate) {
+    Write-Host "[2/4] obfuscate licensing (Cython -> .pyd)"
+    python scripts/obfuscate_licensing.py
+    if ($LASTEXITCODE -ne 0) { Write-Error "obfuscation failed"; exit 1 }
+  }
+
+  Write-Host "[3/4] build bundle"
   pyinstaller main.spec --noconfirm --clean
 
-  Write-Host "[3/3] self-test"
+  Write-Host "[4/4] self-test"
   $env:QT_QPA_PLATFORM = "offscreen"
   & dist/IFC_Converter/IFC_Converter.exe --selftest
   if ($LASTEXITCODE -ne 0) { Write-Error "self-test failed"; exit 1 }

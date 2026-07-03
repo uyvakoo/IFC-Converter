@@ -37,13 +37,31 @@ host) and it will be embedded automatically by `main.spec` when present:
 This adds a portable `bin\node.exe` and `bin\gltfpipe\` (the gltf-pipeline package). The app then
 offers `--compress-mode draco` (CLI) / the "draco" mode in the UI. Without it, only meshopt is built.
 
-## 4. (Optional) Obfuscate the licensing modules — production
-Production builds should obfuscate `licensing/` with **PyArmor** (a paid license is required; the
-spec's `--key` option was removed in PyInstaller 6, so PyArmor is the supported path):
+## 4. (Production) Obfuscate the licensing modules — free, no PyArmor
+Spec §6.3 wants `licensing/` obfuscated. Instead of **PyArmor** (paid), compile the licence/clock modules
+to native Windows `.pyd` with **Cython** — free, and stronger than shipping decompilable `.pyc`: the
+bundle carries machine code for the licence logic, so patching the check out of the compiled app is much
+harder. (PyInstaller's `--key` was removed in v6, so this replaces it.)
+
+**Prerequisites (build host only, nothing ships):**
 ```powershell
-.\.venv\Scripts\pyarmor gen --recursive licensing
+.\.venv\Scripts\python -m pip install cython
+# + a C compiler: MSVC "Build Tools for Visual Studio" (free, e.g. VS 2019/2022 Build Tools).
+.\.venv\Scripts\python scripts\obfuscate_licensing.py --check   # verifies both are present
 ```
-Then point the build at the obfuscated package. (CI builds the un-obfuscated tree.)
+
+**On a fresh release checkout, before building:**
+```powershell
+.\.venv\Scripts\python scripts\obfuscate_licensing.py
+```
+This compiles `licensing\core.py` + `clockguard.py` to `*.pyd`, **removes the `.py` sources**, and
+smoke-imports the compiled package. `licensing\` then holds only `__init__.py`, the two `.pyd`, and
+`public_key.pem`. The next `pyinstaller main.spec` bundles the `.pyd` (extensions win over source on
+import) — verified: the frozen exe still validates licences, and no licence `.py`/`.pyc` ships.
+
+> It **removes source in place** — run it on a throwaway release checkout, not your working tree
+> (`git checkout -- licensing` restores the `.py`). The default CI (`ci.yml`) builds the un-obfuscated
+> tree; obfuscation is a release-only step. The RSA private key is never involved (it isn't in the repo).
 
 ## 5. Build the one-folder bundle
 ```powershell

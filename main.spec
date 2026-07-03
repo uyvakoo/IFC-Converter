@@ -9,16 +9,28 @@ from PyInstaller.utils.hooks import collect_all
 # ifcopenshell ships native .pyd + OpenCASCADE DLLs that are not auto-detected — collect everything.
 _ifc_datas, _ifc_bins, _ifc_hidden = collect_all("ifcopenshell")
 
-hiddenimports = _ifc_hidden + [
+# Licensing dependencies, declared explicitly. Production builds Cython-compile licensing/ to native
+# .pyd (scripts/obfuscate_licensing.py, spec §6.3) — that HIDES these imports from PyInstaller's static
+# analysis, so machineid/cryptography/ntplib must be pulled in by name or the obfuscated exe crashes with
+# ModuleNotFoundError. Harmless for the un-obfuscated build (already collected via source).
+_crypto_datas, _crypto_bins, _crypto_hidden = collect_all("cryptography")
+
+hiddenimports = _ifc_hidden + _crypto_hidden + [
     "ifcopenshell.express.express_parser",   # MANDATORY (spec §8.3) or runtime crash
     "ifcopenshell.util.unit",
     "cli",  # enables `IFC_Converter.exe --cli ...` headless batch conversion
     # NOTE: spec §8.3 also lists "ifcopenshell.geom.serializers" — it does NOT exist in 0.8.5 and is
     # unneeded (serialization is done by the bundled IfcConvert.exe, not Python). Dropped (build defect).
+    "machineid",  # licensing/core.py — machine hash (§6.1)
+    "ntplib",     # licensing/clockguard.py — optional NTP clock check (§6.2)
+    "cryptography.hazmat.primitives.hashes",
+    "cryptography.hazmat.primitives.serialization",
+    "cryptography.hazmat.primitives.asymmetric.padding",
+    "cryptography.exceptions",
 ]
 
 # Bundled binaries + the hard-coded public key (resolved at runtime via core.paths/_MEIPASS).
-datas = _ifc_datas + [
+datas = _ifc_datas + _crypto_datas + [
     ("bin/IfcConvert.exe", "bin"),
     ("bin/gltfpack.exe", "bin"),
     ("licensing/public_key.pem", "licensing"),
@@ -34,7 +46,7 @@ if os.path.isdir("bin/gltfpipe"):
             _src = os.path.join(_root, _f)
             datas.append((_src, os.path.relpath(_root, ".")))
 
-binaries = _ifc_bins
+binaries = _ifc_bins + _crypto_bins
 
 a = Analysis(
     ["main.py"],
