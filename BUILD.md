@@ -25,17 +25,17 @@ the install).
 ```powershell
 .\.venv\Scripts\python scripts\fetch_binaries.py
 ```
-Downloads `IfcConvert.exe` (IfcOpenShell 0.8.5) and `gltfpack.exe` (meshoptimizer 1.1) into `bin\`.
+Downloads `IfcConvert.exe` (IfcOpenShell 0.8.5) and `gltfpack.exe` (meshoptimizer 1.1) into `bin\`,
+**plus** the Draco backend by default — a portable `bin\node.exe` and `bin\gltfpipe\` (the
+gltf-pipeline package; needs `npm` on the build host). `main.spec` embeds them automatically. This is
+the spec default (§1/§5.1): the app ships low-poly + `KHR_draco_mesh_compression` AR GLB out of the box.
 They are not committed; the PyInstaller bundle embeds them.
 
-**Optional — Draco backend.** The default AR compression is meshopt (gltfpack). To also bundle the
-Draco backend (`KHR_draco_mesh_compression` via gltf-pipeline), fetch it (needs `npm` on the build
-host) and it will be embedded automatically by `main.spec` when present:
+**Minimal build (no Draco).** To skip the ~70 MB Node + gltf-pipeline toolchain (meshopt/quantize only,
+no `KHR_draco_mesh_compression`):
 ```powershell
-.\.venv\Scripts\python scripts\fetch_binaries.py --with-draco
+.\.venv\Scripts\python scripts\fetch_binaries.py --no-draco
 ```
-This adds a portable `bin\node.exe` and `bin\gltfpipe\` (the gltf-pipeline package). The app then
-offers `--compress-mode draco` (CLI) / the "draco" mode in the UI. Without it, only meshopt is built.
 
 ## 4. (Production) Obfuscate the licensing modules — free, no PyArmor
 Spec §6.3 wants `licensing/` obfuscated. Instead of **PyArmor** (paid), compile the licence/clock modules

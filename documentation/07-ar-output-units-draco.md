@@ -4,15 +4,17 @@
 > **authorized bundling a Draco post-processor** (gltfpack recommended / gltf-pipeline) in the final
 > `.exe` (D1). See [02 — decision log](02-defects-and-remedies.md#decision-log).
 >
-> **AS-BUILT (2026-06-25):** implemented in `core/postprocess.py` with **two** backends, selectable in
-> the CLI (`--compress-mode meshopt|draco`) and the UI (mode dropdown):
-> - **meshopt** (default) — `gltfpack -si -cc` → `EXT_meshopt_compression` (real model ×0.34).
-> - **draco** — `node gltf-pipeline -d` → **`KHR_draco_mesh_compression`** (real model ×0.36),
->   materials preserved (validated in the evidence pack; both decode back to the correct colored model).
+> **AS-BUILT (2026-06-25; draco defaulted 2026-07-07):** implemented in `core/postprocess.py`,
+> selectable in the CLI (`--compress-mode draco|meshopt|quantize`) and the UI (mode dropdown):
+> - **draco** (default, spec §1/§5.1) — `gltfpack -si` (low-poly / `--optimize`) then
+>   `node gltf-pipeline -d` → **`KHR_draco_mesh_compression`** (`--draco`). Both decimated AND
+>   Draco-compressed; materials/colours preserved through both stages.
+> - **meshopt** — `gltfpack -si -cc` → `EXT_meshopt_compression` (real model ×0.34).
 >
-> The Draco backend (Node + gltf-pipeline) is fetched with `scripts/fetch_binaries.py --with-draco` and
-> shipped as a separate `…-win64-draco.zip` by `release.yml`. The earlier "confirm the ARKit decoder"
-> caveat is now just a **build/runtime choice** — both backends ship.
+> The Draco backend (Node + gltf-pipeline) is fetched **by default** by `scripts/fetch_binaries.py`
+> (`--no-draco` opts out). Note: gltfpack's border-aware simplifier will not collapse hard-edged box
+> geometry (walls/slabs stay intact by design); the low-poly benefit applies to detailed/curved meshes,
+> proven on a decimatable surface by `tests/validate_core.py::m5_lowpoly`.
 
 ## Purpose
 Make the GLB AR-ready for iPad/ARKit: correct real-world scale, +Y up axis, and "highly compressed,

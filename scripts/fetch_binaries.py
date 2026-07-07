@@ -91,7 +91,9 @@ def main(argv=None) -> int:
     os.makedirs(BIN, exist_ok=True)
     for target in TARGETS:
         fetch(target)
-    if "--with-draco" in argv:
+    # Draco is the spec default (§1/§5.1), so its Node + gltf-pipeline toolchain is fetched by default.
+    # `--no-draco` makes a minimal bundle (meshopt/quantize only, no KHR_draco_mesh_compression).
+    if "--no-draco" not in argv:
         fetch_node()
         fetch_gltf_pipeline()
     print("binaries ready in bin/")

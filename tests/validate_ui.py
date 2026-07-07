@@ -145,6 +145,9 @@ def real_world_e2e():
             ifcconvert=paths.ifcconvert(),
             gltfpack=paths.gltfpack(),
             compress=compress,
+            # compress defaults to draco (spec) — wire the toolchain exactly as the real UI does
+            node=paths.node(),
+            gltf_pipeline=paths.gltf_pipeline(),
         )
         states = []
         w = BatchWorker([real], opts)

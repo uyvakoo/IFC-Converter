@@ -101,8 +101,9 @@ class MainWindow(QMainWindow):
         crow = QHBoxLayout()
         crow.addWidget(QLabel("Mode:"))
         self.compress_mode_combo = QComboBox()
-        # (label, mode) — meshopt is the default/approved backend; draco = KHR_draco_mesh_compression.
-        for label in ("meshopt (gltfpack)", "draco (gltf-pipeline)"):
+        # draco is the spec default (§1/§5.1: low-poly + KHR_draco_mesh_compression); meshopt is the
+        # gltfpack alternative. Draco is first so it is selected by default.
+        for label in ("draco (gltf-pipeline)", "meshopt (gltfpack)"):
             self.compress_mode_combo.addItem(label)
         crow.addWidget(self.compress_mode_combo, 1)
         lay.addLayout(crow)
@@ -234,7 +235,7 @@ class MainWindow(QMainWindow):
             ifcconvert=paths.ifcconvert(),
             gltfpack=paths.gltfpack(),
             compress=self.cb_compress.isChecked(),
-            compress_mode="draco" if self.compress_mode_combo.currentIndex() == 1 else "meshopt",
+            compress_mode="meshopt" if self.compress_mode_combo.currentIndex() == 1 else "draco",
             node=paths.node(),
             gltf_pipeline=paths.gltf_pipeline(),
         )
