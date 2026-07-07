@@ -8,6 +8,10 @@ build/
 dist/
 *.spec.bak
 
+# Cython obfuscation output (scripts/obfuscate_licensing.py) — compiled licensing, never commit
+*.pyd
+licensing/*.c
+
 # Release packages (produced by release.yml / make_release.ps1)
 IFC_Converter-*.zip
 *.zip.sha256
