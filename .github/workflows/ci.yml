@@ -110,9 +110,16 @@ jobs:
 
       - name: Bundle self-test (loads native libs + binaries from _MEIPASS; real IFC->GLB conversion)
         if: steps.spec.outputs.present == 'true'
+        shell: pwsh
         env:
           QT_QPA_PLATFORM: offscreen
-        run: dist/IFC_Converter/IFC_Converter.exe --selftest
+        # The bundle is a GUI-subsystem exe (console=False); invoking it directly in pwsh does NOT block
+        # or propagate its exit code, so a failing --selftest would silently pass. Start-Process -Wait
+        # -PassThru waits and surfaces the real exit code, making this a genuine gate.
+        run: |
+          $p = Start-Process -FilePath dist/IFC_Converter/IFC_Converter.exe -ArgumentList '--selftest' -Wait -PassThru -NoNewWindow
+          Write-Host "selftest exit code: $($p.ExitCode)"
+          if ($p.ExitCode -ne 0) { exit 1 }
 
       # Exit-code acceptance against the FROZEN exe (scripts/cli_exit_codes.py) and the full §8.4
       # acceptance report run locally — not in CI: launching the windowed bundle repeatedly on a
