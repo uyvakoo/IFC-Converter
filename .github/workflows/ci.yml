@@ -113,11 +113,21 @@ jobs:
         shell: pwsh
         env:
           QT_QPA_PLATFORM: offscreen
-        # The bundle is a GUI-subsystem exe (console=False); invoking it directly in pwsh does NOT block
-        # or propagate its exit code, so a failing --selftest would silently pass. Start-Process -Wait
-        # -PassThru waits and surfaces the real exit code, making this a genuine gate.
+        # The bundle is a GUI-subsystem exe (console=False): a bare invocation in pwsh neither blocks nor
+        # surfaces an exit code (a failing selftest would silently pass), and Start-Process -Wait can
+        # STALL on it. Redirect its stdio to files (matches a clean local run) and WaitForExit with a hard
+        # timeout, so this genuinely gates on the exit code yet can never hang the job.
         run: |
-          $p = Start-Process -FilePath dist/IFC_Converter/IFC_Converter.exe -ArgumentList '--selftest' -Wait -PassThru -NoNewWindow
+          $p = Start-Process -FilePath dist/IFC_Converter/IFC_Converter.exe -ArgumentList '--selftest' `
+                 -PassThru -NoNewWindow -RedirectStandardOutput selftest.out -RedirectStandardError selftest.err
+          if (-not $p.WaitForExit(180000)) {
+            try { $p.Kill() } catch {}
+            Write-Host 'selftest TIMED OUT (180s)'
+            if (Test-Path selftest.out) { Get-Content selftest.out }
+            exit 1
+          }
+          if (Test-Path selftest.out) { Get-Content selftest.out }
+          if (Test-Path selftest.err) { Get-Content selftest.err }
           Write-Host "selftest exit code: $($p.ExitCode)"
           if ($p.ExitCode -ne 0) { exit 1 }
 
