@@ -20,6 +20,8 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
+import _qa_license  # sibling helper: signs a machine-locked --license for the hardened --cli gate
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIX = os.path.join(ROOT, "tests", "fixtures")
 
@@ -78,10 +80,12 @@ def main():
     st_ok, st_line = run_selftest()
     exe_sha = sha256(EXE)
     gen = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    # The frozen `--cli` requires a valid machine-locked key (PR #14); sign one for this run.
+    license_path = _qa_license.mint()
     rows, passed = [], 0
     for name, fixture, args in CASES:
         ifc = os.path.join(FIX, fixture)
-        cmd = [EXE, "--cli", ifc, "--out", OUT] + args
+        cmd = [EXE, "--cli", ifc, "--out", OUT] + args + ["--license", license_path]
         try:
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
             rc = r.returncode

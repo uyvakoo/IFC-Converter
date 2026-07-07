@@ -17,6 +17,8 @@ import subprocess
 import sys
 import tempfile
 
+import _qa_license  # sibling helper: signs a machine-locked --license for the hardened --cli gate
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIX = os.path.join(ROOT, "tests", "fixtures")
 EXE = os.path.abspath(
@@ -41,9 +43,12 @@ def main():
         print("SKIP: bundle has no node.exe (build with fetch_binaries.py --with-draco)")
         return 0
     with tempfile.TemporaryDirectory() as out:
+        # The frozen `--cli` requires a valid machine-locked key (PR #14); sign one for this run.
+        license_path = _qa_license.mint()
         cmd = [
             EXE, "--cli", os.path.join(FIX, "real_building.ifc"), "--out", out,
             "--classes", "Structural,MEP,Architectural", "--glb", "--compress", "--compress-mode", "draco",
+            "--license", license_path,
         ]  # fmt: skip
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
         glb = os.path.join(out, "real_building.glb")
