@@ -63,9 +63,14 @@ def ui_widgets():
         "queue/progress/cancel/targets/output controls present",
         all(
             hasattr(w, a)
-            for a in ("btn_cancel", "progress", "cb_stp", "cb_compress", "out_label", "xyz_toggle")
+            for a in ("btn_cancel", "progress", "cb_stp", "cb_usdz", "cb_compress", "out_label", "xyz_toggle")
         ),
     )
+    # F6: the USDZ checkbox drives the target list (off -> no usdz; on -> usdz requested)
+    check("USDZ off -> not a target", "usdz" not in w.build_opts()["targets"])
+    w.cb_usdz.setChecked(True)
+    check("USDZ on -> 'usdz' target requested", "usdz" in w.build_opts()["targets"])
+    w.cb_usdz.setChecked(False)
 
 
 def license_flow():

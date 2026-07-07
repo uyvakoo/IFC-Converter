@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 import ifcopenshell
 import ifcopenshell.util.unit
 
-from . import analyze, convert, cropping, filtering, postprocess, styling
+from . import analyze, convert, cropping, filtering, postprocess, styling, usdz
 from .errors import FatalError, FileError
 
 # Disk-space floor (bytes) kept free on top of the input size before we start writing (§9.3).
@@ -36,9 +36,12 @@ class Result:
     style_stats: dict = field(default_factory=dict)
     glb: str | None = None
     stp: str | None = None
+    usdz: str | None = None
     glb_bytes: int | None = None
     stp_bytes: int | None = None
+    usdz_bytes: int | None = None
     compress_stats: dict | None = None
+    usdz_stats: dict | None = None
     unit_scale: float | None = None  # project length unit -> metres (§5.1; reporting only, D5)
     elapsed_s: float = 0.0
 
@@ -154,18 +157,38 @@ def process(
             if e.errno == errno.ENOSPC:
                 raise FatalError("Out of disk space while writing output — free space and retry") from e
             raise
-        if "glb" in targets:
-            res.glb = convert.to_glb(ifcconvert, temp_ifc, os.path.join(out_dir, stem + ".glb"))
-            if compress:  # F5: AR post-step — gltfpack meshopt (D1) or gltf-pipeline Draco
-                res.compress_stats = postprocess.compress_glb(
-                    gltfpack,
-                    res.glb,
-                    mode=compress_mode,
-                    simplify=simplify,
-                    node=node,
-                    gltf_pipeline=gltf_pipeline,
-                )
-            res.glb_bytes = os.path.getsize(res.glb)
+        # GLB is also the source for USDZ (F6). When USDZ is requested without GLB, build a throwaway
+        # GLB just to derive the USDZ. Always derive USDZ from the PLAIN GLB — before the F5 compression
+        # step encodes the buffers (core.usdz reads plain glTF accessors only).
+        if "glb" in targets or "usdz" in targets:
+            if "glb" in targets:
+                glb_path = os.path.join(out_dir, stem + ".glb")
+                keep_glb = True
+            else:
+                gfd, glb_path = tempfile.mkstemp(suffix=".glb", prefix=f"{stem}_")
+                os.close(gfd)
+                keep_glb = False
+            convert.to_glb(ifcconvert, temp_ifc, glb_path)
+            try:
+                if "usdz" in targets:  # F6: iOS-native AR — GLB -> USDZ (dependency-free)
+                    res.usdz = os.path.join(out_dir, stem + ".usdz")
+                    res.usdz_stats = usdz.glb_to_usdz(glb_path, res.usdz)
+                    res.usdz_bytes = os.path.getsize(res.usdz)
+                if "glb" in targets:
+                    res.glb = glb_path
+                    if compress:  # F5: AR post-step — gltfpack meshopt (D1) or gltf-pipeline Draco
+                        res.compress_stats = postprocess.compress_glb(
+                            gltfpack,
+                            res.glb,
+                            mode=compress_mode,
+                            simplify=simplify,
+                            node=node,
+                            gltf_pipeline=gltf_pipeline,
+                        )
+                    res.glb_bytes = os.path.getsize(res.glb)
+            finally:
+                if not keep_glb and os.path.exists(glb_path):
+                    os.remove(glb_path)  # temp GLB existed only to derive the USDZ
         if "stp" in targets:
             res.stp = convert.to_stp(ifcconvert, temp_ifc, os.path.join(out_dir, stem + ".stp"))
             res.stp_bytes = os.path.getsize(res.stp)

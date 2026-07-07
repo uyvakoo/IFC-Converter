@@ -47,6 +47,7 @@ def main(argv=None):
     p.add_argument("--xyz", default=None, help="manual crop box xmin,xmax,ymin,ymax,zmin,zmax")
     p.add_argument("--glb", action="store_true", help="emit GLB")
     p.add_argument("--stp", action="store_true", help="emit STP")
+    p.add_argument("--usdz", action="store_true", help="emit USDZ (iOS-native AR / ARKit Quick Look)")
     p.add_argument("--compress", action="store_true", help="compress the GLB for AR (F5)")
     p.add_argument(
         "--compress-mode",
@@ -63,7 +64,7 @@ def main(argv=None):
 
     groups = [g.strip() for g in args.classes.split(",") if g.strip()]
     xyz = [float(v) for v in args.xyz.split(",")] if args.xyz else None
-    targets = tuple(t for t in ("glb", "stp") if getattr(args, t))
+    targets = tuple(t for t in ("glb", "stp", "usdz") if getattr(args, t))
     if not targets:
         targets = ("glb",)
 
@@ -106,7 +107,7 @@ def main(argv=None):
             print(
                 f"[OK] {os.path.basename(path)} schema={r.schema} crop={r.crop_desc} "
                 f"kept={r.kept} removed={r.removed} styled_items={r.style_stats.get('items')} "
-                f"glb={r.glb_bytes} stp={r.stp_bytes}"
+                f"glb={r.glb_bytes} stp={r.stp_bytes} usdz={r.usdz_bytes}"
                 + (f" compress={cs['bytes_before']}->{cs['bytes_after']} (x{cs['ratio']})" if cs else "")
                 + f" {r.elapsed_s}s"
             )
@@ -121,6 +122,7 @@ def main(argv=None):
                     "unit_scale": r.unit_scale,
                     "glb_bytes": r.glb_bytes,
                     "stp_bytes": r.stp_bytes,
+                    "usdz_bytes": r.usdz_bytes,
                     "elapsed_s": r.elapsed_s,
                     "status": "Done",
                 },

@@ -17,6 +17,7 @@ def append(report_path: str, row: dict) -> None:
         ("unit_scale_to_m", row.get("unit_scale")),
         ("glb_bytes", row.get("glb_bytes")),
         ("stp_bytes", row.get("stp_bytes")),
+        ("usdz_bytes", row.get("usdz_bytes")),
         ("elapsed_s", row.get("elapsed_s")),
         ("status", row.get("status")),
         ("error", row.get("error")),

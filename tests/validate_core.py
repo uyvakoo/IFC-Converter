@@ -267,6 +267,68 @@ def crop_cascade_safe():
     )
 
 
+def usdz_export():
+    """F6: GLB -> USDZ (iOS-native AR). Spec-compliant .usdz, geometry + our 4 colours preserved."""
+    import glob
+    import json
+    import re
+    import struct
+    import zipfile
+
+    r = pipeline.process(
+        FIXTURE,
+        OUT,
+        ["Structural", "MEP", "Architectural", "Cables"],
+        targets=("glb", "usdz"),
+        ifcconvert=IFCCONVERT,
+    )
+    check("usdz produced", bool(r.usdz) and os.path.isfile(r.usdz), str(r.usdz))
+    check("usdz_stats has geometry", bool(r.usdz_stats) and r.usdz_stats["vertices"] > 0, str(r.usdz_stats))
+
+    zf = zipfile.ZipFile(r.usdz)
+    names = zf.namelist()
+    check(
+        "usdz is a valid *stored* zip",
+        zf.testzip() is None and zf.infolist()[0].compress_type == zipfile.ZIP_STORED,
+    )
+    check("usdz first entry is the .usda layer", bool(names) and names[0].endswith(".usda"), str(names))
+
+    raw = open(r.usdz, "rb").read()
+    nlen, elen = struct.unpack_from("<HH", raw, 26)
+    data_off = 30 + nlen + elen
+    check("usdz first-file data is 64-byte aligned (Apple USDZ)", data_off % 64 == 0, f"offset={data_off}")
+
+    usda = zf.read(names[0]).decode("utf-8")
+    check("usda header + Y-up", usda.startswith("#usda 1.0") and 'upAxis = "Y"' in usda)
+    cols = set(re.findall(r"displayColor = \[\(([^)]+)\)\]", usda))
+    want = {"0.8, 0.8, 0.8", "0.2, 0.4, 0.8", "0.6, 0.3, 0.1", "0.9, 0.2, 0.2"}
+    check("usdz preserves all 4 AR group colours", want <= cols, str(cols))
+
+    # independent geometry cross-check: sum POSITION accessor counts straight from the GLB JSON
+    gdata = open(r.glb, "rb").read()
+    clen = struct.unpack_from("<I", gdata, 12)[0]
+    gj = json.loads(gdata[20 : 20 + clen])
+    vtot = sum(
+        gj["accessors"][prim["attributes"]["POSITION"]]["count"]
+        for mesh in gj.get("meshes", [])
+        for prim in mesh.get("primitives", [])
+    )
+    check(
+        "usdz vertex count matches GLB POSITION accessors",
+        r.usdz_stats["vertices"] == vtot,
+        f"{r.usdz_stats['vertices']} vs {vtot}",
+    )
+
+    # usdz-only target: a throwaway GLB is used then cleaned — none must be left behind
+    tmp = os.path.join(OUT, "usdzonly")
+    os.makedirs(tmp, exist_ok=True)
+    r2 = pipeline.process(FIXTURE, tmp, ["Structural", "MEP"], targets=("usdz",), ifcconvert=IFCCONVERT)
+    check(
+        "usdz-only leaves no stray GLB",
+        not glob.glob(os.path.join(tmp, "*.glb")) and os.path.isfile(r2.usdz),
+    )
+
+
 def main():
     import shutil
 
@@ -280,6 +342,7 @@ def main():
     m5_draco()
     schema_compat()
     crop_cascade_safe()
+    usdz_export()
     p = sum(_results)
     t = len(_results)
     print(f"\n==== {p}/{t} checks passed ====")
