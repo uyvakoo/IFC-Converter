@@ -262,8 +262,11 @@ def m5_lowpoly():
             dr_tris = glbtools.triangle_count(dr)
             exts = _glb_extensions_required(dr)
             check("draco is low-poly (triangles reduced)", dr_tris <= n0 * 0.65, f"{n0}->{dr_tris}")
-            check("draco low-poly output still declares KHR_draco_mesh_compression",
-                  "KHR_draco_mesh_compression" in exts, str(exts))
+            check(
+                "draco low-poly output still declares KHR_draco_mesh_compression",
+                "KHR_draco_mesh_compression" in exts,
+                str(exts),
+            )
             print(f"      info: dense {n0} tris -> meshopt {mo_tris}, draco {dr_tris}")
         else:
             print(f"      info: dense {n0} tris -> meshopt {mo_tris} (skip draco leg — no Node)")
