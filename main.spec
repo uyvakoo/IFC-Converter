@@ -27,6 +27,11 @@ hiddenimports = _ifc_hidden + _crypto_hidden + [
     "cryptography.hazmat.primitives.serialization",
     "cryptography.hazmat.primitives.asymmetric.padding",
     "cryptography.exceptions",
+    # qt-material renders SVG at runtime (theme icons). It's imported dynamically, so PyInstaller doesn't
+    # see it — it was only bundled because matplotlib's Qt backend happened to pull QtSvg. Now that
+    # matplotlib is excluded, declare it explicitly or the light theme loses its SVG assets.
+    "PySide6.QtSvg",
+    "PySide6.QtSvgWidgets",
 ]
 
 # Bundled binaries + the hard-coded public key (resolved at runtime via core.paths/_MEIPASS).
@@ -48,6 +53,20 @@ if os.path.isdir("bin/gltfpipe"):
 
 binaries = _ifc_bins + _crypto_bins
 
+# Dev-only / transitively-pulled packages the runtime never imports — excluded to trim the bundle.
+# matplotlib (+ its Tk backend) is the big one (~tens of MB, drags in Tcl/Tk); trimesh/Cython/pytest are
+# build/test tooling. None appear in the main.py import graph (core/ui/cli/licensing); verified by a
+# post-exclude --selftest 9/9. Add here, never to hiddenimports.
+excludes = [
+    "matplotlib",
+    "tkinter",
+    "_tkinter",
+    "trimesh",
+    "Cython",
+    "pytest",
+    "IPython",
+]
+
 a = Analysis(
     ["main.py"],
     pathex=[],
@@ -55,6 +74,7 @@ a = Analysis(
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=["hooks"],
+    excludes=excludes,
     noarchive=False,
 )
 pyz = PYZ(a.pure)
