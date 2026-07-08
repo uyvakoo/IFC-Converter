@@ -84,6 +84,7 @@ def _ensure_disk_space(out_dir, input_path):
 
 
 def _resolve_box(model, analysis, storey_name, xyz):
+    """Resolve the crop box + a description: explicit XYZ wins, else the named storey's Z-box, else none."""
     if xyz is not None:
         return tuple(xyz), f"xyz{xyz}"
     if storey_name:
@@ -111,6 +112,9 @@ def process(
     simplify=0.5,
     progress_cb=None,
 ) -> Result:
+    """Convert one IFC end-to-end: open -> analyze -> crop/filter -> colour -> IfcConvert -> AR
+    post-step, emitting the requested targets (GLB/STP/USDZ). Returns a Result with sizes/stats;
+    raises FileError/FatalError on the §9 error paths. The source IFC is never mutated on disk."""
     t0 = time.time()
     os.makedirs(out_dir, exist_ok=True)
     model = _open_model(input_path)  # §9.1 scenario 1: corrupt/missing -> clear FileError

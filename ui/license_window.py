@@ -21,6 +21,7 @@ import licensing
 
 class LicenseDialog(QDialog):
     def __init__(self, parent=None, public_key_pem: bytes | None = None, clock_store=None):
+        """Build the modal License Activation window (machine hash, Browse/Activate; §7.2 Window 1)."""
         super().__init__(parent)
         self.setWindowTitle("License Activation")
         self.setModal(True)
@@ -57,6 +58,7 @@ class LicenseDialog(QDialog):
         lay.addWidget(btn_activate)
 
     def _browse(self):
+        """Open a file dialog to pick the license.key file to activate."""
         path, _ = QFileDialog.getOpenFileName(
             self, "Select license.key", "", "License (*.key *.json);;All files (*)"
         )
@@ -77,6 +79,7 @@ class LicenseDialog(QDialog):
         return licensing.verify_license(lic, self._pub, current_machine=self.machine)
 
     def _activate(self):
+        """Validate the chosen license; close the dialog on success, show the error otherwise."""
         if not self._license_path:
             QMessageBox.warning(self, "License", "Choose a license.key file first.")
             return

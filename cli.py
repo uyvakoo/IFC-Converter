@@ -23,6 +23,7 @@ DEFAULT_GLTFPIPELINE = paths.gltf_pipeline()
 
 
 def _output_writable(path: str) -> bool:
+    """True if `path` can be created and written to (probe write); §9.2 output-folder guard."""
     try:
         os.makedirs(path, exist_ok=True)
         probe = os.path.join(path, ".write_test")
@@ -35,6 +36,7 @@ def _output_writable(path: str) -> bool:
 
 
 def main(argv=None):
+    """Headless entry (`--cli`): parse args, license-gate, convert each file; returns a §9 exit code."""
     p = argparse.ArgumentParser(description="IFC -> filtered/cropped/colored GLB/STP (core pipeline)")
     p.add_argument("inputs", nargs="+", help="input .ifc file(s)")
     p.add_argument("--out", default="out", help="output folder")

@@ -31,6 +31,7 @@ class Analysis:
     class_counts: dict[str, int] = field(default_factory=dict)
 
     def z_bounds(self, guids):
+        """Return (min Z, max Z) across the given elements' world bboxes, or None if none are known."""
         zs = [
             (self.elements[g].bbox_min[2], self.elements[g].bbox_max[2]) for g in guids if g in self.elements
         ]

@@ -25,6 +25,7 @@ QLabel#error {{ color: {PALETTE["error"]}; }}
 
 
 def apply_theme(app) -> None:
+    """Apply the light qt-material theme + the spec §7.1 palette QSS to the QApplication."""
     try:
         from qt_material import apply_stylesheet
 

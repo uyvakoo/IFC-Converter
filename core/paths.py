@@ -10,14 +10,17 @@ _BASE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.abspath
 
 
 def resource(*parts: str) -> str:
+    """Absolute path to a bundled resource, resolving under _MEIPASS when frozen and the repo in dev."""
     return os.path.join(_BASE, *parts)
 
 
 def ifcconvert() -> str:
+    """Path to the bundled IfcConvert.exe (IFC -> GLB/STP conversion)."""
     return resource("bin", "IfcConvert.exe")
 
 
 def gltfpack() -> str:
+    """Path to the bundled gltfpack.exe (mesh decimation + meshopt compression)."""
     return resource("bin", "gltfpack.exe")
 
 
@@ -32,4 +35,5 @@ def gltf_pipeline() -> str:
 
 
 def public_key() -> str:
+    """Path to the bundled RSA public key PEM used to verify licenses (§6.2)."""
     return resource("licensing", "public_key.pem")

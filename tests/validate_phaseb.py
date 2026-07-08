@@ -146,6 +146,19 @@ def f7_licensing():
     ok, reason = licensing.check_clock(store, now - timedelta(days=5))  # rolled back
     check("rolled-back clock locked", (not ok) and "tamper" in reason.lower(), reason)
 
+    # robustness: a corrupt/hand-edited stamp must NOT crash the app at launch -> treated as first run
+    corrupt = licensing.InMemoryStore("not-a-timestamp")
+    ok_c, _ = licensing.check_clock(corrupt, now)
+    check("corrupt stored stamp -> first run (no crash)", ok_c and corrupt.get() == now.isoformat())
+
+    # robustness: a registry write failure must NOT crash -> guard degrades, run allowed
+    class _FailSet(licensing.InMemoryStore):
+        def set(self, value):
+            raise OSError("registry write denied")
+
+    ok_s, _ = licensing.check_clock(_FailSet(), now)
+    check("registry write failure -> no crash (guard degrades)", ok_s)
+
     # clock guard via the REAL HKCU registry store (the production path)
     if sys.platform == "win32":
         import winreg

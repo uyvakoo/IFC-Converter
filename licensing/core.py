@@ -40,6 +40,7 @@ def load_public_key_pem() -> bytes:
 
 
 def canonical_payload(machine_hash_: str, expiry: str) -> bytes:
+    """Deterministic signed bytes for a license (sorted keys, no whitespace); signer/verifier must match."""
     return json.dumps(
         {"machine_hash": machine_hash_, "expiry": expiry}, sort_keys=True, separators=(",", ":")
     ).encode("utf-8")

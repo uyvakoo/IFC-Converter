@@ -25,6 +25,7 @@ def selftest() -> int:
     oks = []
 
     def ck(name, cond):
+        """Record + print one self-test check result."""
         oks.append(bool(cond))
         print(("  OK   " if cond else "  FAIL ") + name)
 
@@ -113,6 +114,7 @@ def selftest() -> int:
 
 
 def main():
+    """Process entry point: dispatch to --selftest / --cli, else launch the licensed GUI."""
     if "--selftest" in sys.argv:
         return selftest()
     if "--cli" in sys.argv:

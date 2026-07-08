@@ -33,6 +33,7 @@ from ui.worker import BatchWorker
 
 class MainWindow(QMainWindow):
     def __init__(self):
+        """Build the main window (§7.2 Window 2): settings panel, batch table, and action bar."""
         super().__init__()
         self.setWindowTitle(f"{APP_NAME} v{APP_VERSION}")
         self.resize(900, 560)
@@ -63,6 +64,7 @@ class MainWindow(QMainWindow):
 
     # ---- panels -----------------------------------------------------------
     def _build_left(self):
+        """Build the left settings panel: class checklist, storey dropdown, XYZ crop, output toggles."""
         box = QGroupBox("Settings")
         lay = QVBoxLayout(box)
         lay.addWidget(QLabel("Keep classes:"))
@@ -111,6 +113,7 @@ class MainWindow(QMainWindow):
         return box
 
     def _build_center(self):
+        """Build the centre batch panel: Add Files, the file/status table, progress bar + elapsed."""
         box = QGroupBox("Batch")
         lay = QVBoxLayout(box)
         btn_add = QPushButton("Add Files…")
@@ -130,6 +133,7 @@ class MainWindow(QMainWindow):
         return box
 
     def _build_bottom(self):
+        """Build the bottom action bar: Start, Cancel, Output Folder, and Open Report."""
         bar = QHBoxLayout()
         self.btn_start = QPushButton("Start Conversion")
         self.btn_start.setObjectName("primary")
@@ -152,9 +156,11 @@ class MainWindow(QMainWindow):
 
     # ---- actions ----------------------------------------------------------
     def _toggle_xyz(self, on):
+        """Show/hide the manual XYZ crop inputs when the toggle changes."""
         self.xyz_box.setVisible(on)
 
     def _add_files(self):
+        """Prompt for IFC files and queue the chosen ones."""
         files, _ = QFileDialog.getOpenFileNames(self, "Add IFC files", "", "IFC (*.ifc);;All (*)")
         if files:
             self.add_files(files)
@@ -173,6 +179,7 @@ class MainWindow(QMainWindow):
         self._update_start_enabled()
 
     def _populate_storeys(self, ifc_path):
+        """Fill the storey dropdown from the IfcBuildingStorey entities of the given IFC (best-effort)."""
         try:
             m = ifcopenshell.open(ifc_path)
             for st in m.by_type("IfcBuildingStorey"):
@@ -181,6 +188,7 @@ class MainWindow(QMainWindow):
             pass
 
     def _pick_output(self, d=None):
+        """Choose the output folder; reject a non-writable one with a dialog (§9.2)."""
         d = d or QFileDialog.getExistingDirectory(self, "Output folder")
         if not d:
             return
@@ -191,6 +199,7 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _output_writable(path: str) -> bool:
+        """True if a probe file can be written to `path` (output-folder writability check)."""
         try:
             probe = os.path.join(path, ".write_test")
             with open(probe, "w") as f:
@@ -201,11 +210,13 @@ class MainWindow(QMainWindow):
             return False
 
     def set_output(self, d):
+        """Set the output folder and refresh the Start button's enabled state."""
         self._out_dir = d
         self.out_label.setText(d)
         self._update_start_enabled()
 
     def _open_report(self):
+        """Open conversion_report.txt in the OS default editor, or note that none exists yet."""
         if self._out_dir:
             rp = os.path.join(self._out_dir, "conversion_report.txt")
             if os.path.exists(rp):
@@ -214,9 +225,11 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Report", "No report yet.")
 
     def selected_groups(self):
+        """The class groups currently ticked in the checklist."""
         return [g for g, cb in self.group_checks.items() if cb.isChecked()]
 
     def build_opts(self):
+        """Assemble the batch options dict from the current UI state (groups, crop, targets, compress)."""
         targets = (
             ("glb",)
             + (("stp",) if self.cb_stp.isChecked() else ())
@@ -241,10 +254,12 @@ class MainWindow(QMainWindow):
         )
 
     def _update_start_enabled(self):
+        """Enable Start only when files are queued, an output folder is set, and no run is active."""
         ready = bool(self._files) and bool(self._out_dir)
         self.btn_start.setEnabled(ready and self._thread is None)
 
     def _start(self):
+        """Kick off the batch on a worker thread and start the §9.4 UI heartbeat."""
         for r in range(self.table.rowCount()):
             self.table.setItem(r, 1, QTableWidgetItem("Pending"))
         self.progress.setRange(0, 100)
@@ -268,6 +283,7 @@ class MainWindow(QMainWindow):
         self._heartbeat.start()  # §9.4: guarantee a UI refresh at least every 2s
 
     def _tick(self):
+        """§9.4 heartbeat: advance the Elapsed counter and flip to a busy marquee if progress stalls."""
         # §9.4 heartbeat (fires every 1s): always advance the Elapsed counter (a guaranteed visible
         # update), and if determinate progress has stalled >2s (an opaque IfcConvert/gltfpack step),
         # flip the bar to an animated busy/indeterminate marquee so it visibly shows "still alive".
@@ -279,11 +295,13 @@ class MainWindow(QMainWindow):
         self.progress.update()
 
     def _cancel(self):
+        """Request cooperative cancellation of the running batch."""
         if self._worker:
             self._worker.cancel()
         self.btn_cancel.setEnabled(False)
 
     def _on_progress(self, idx, pct):
+        """Handle a determinate progress event: leave busy mode, show the percentage + queue position."""
         # A real (determinate) progress event arrived -> leave busy mode and show the percentage.
         if self.progress.maximum() == 0:
             self.progress.setRange(0, 100)
@@ -292,11 +310,13 @@ class MainWindow(QMainWindow):
         self._set_queue_label(idx, pct)
 
     def _on_status(self, idx, state, error):
+        """Update a file's row with its state (or error) and the queue label while processing."""
         self.table.setItem(idx, 1, QTableWidgetItem(state if not error else f"Error: {error}"))
         if state == "Processing":
             self._set_queue_label(idx)
 
     def _set_queue_label(self, idx, pct=None):
+        """Show queue position, current file name and optional percentage (§4.2)."""
         # §4.2: show queue position, current file name, and percentage.
         total = len(self._files)
         name = os.path.basename(self._files[idx]) if 0 <= idx < total else ""
@@ -304,9 +324,11 @@ class MainWindow(QMainWindow):
         self.queue_label.setText(f"Processing {idx + 1} of {total}: {name}{tail}")
 
     def _on_fatal(self, msg):
+        """Show a fatal-error dialog for a whole-run abort (e.g. a missing bundled binary, §9.3)."""
         QMessageBox.critical(self, "Fatal", msg)
 
     def _on_finished(self):
+        """Finalize a run: stop the heartbeat, complete the bar, tear down the worker thread."""
         self._heartbeat.stop()
         self.progress.setRange(0, 100)
         self.progress.setValue(100)
@@ -322,6 +344,7 @@ class MainWindow(QMainWindow):
         self._update_start_enabled()
 
     def closeEvent(self, event):  # §9.5 graceful close
+        """Confirm before quitting mid-run; on confirm, cancel cooperatively and join the thread (§9.5)."""
         if self._thread is not None:
             if (
                 QMessageBox.question(self, "Quit", "A conversion is running. Cancel and quit?")

@@ -32,6 +32,7 @@ def build_styles(model) -> dict[str, object]:
 
 
 def _assign_to_item(model, item, style, stats):
+    """Assign the surface style to a representation item, recursing through IfcMappedItem instances."""
     if item.is_a("IfcMappedItem"):
         stats["mapped"] += 1
         for sub in item.MappingSource.MappedRepresentation.Items:
