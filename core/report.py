@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 
 def append(report_path: str, row: dict) -> None:
+    """Append one `key=value | ...` line to conversion_report.txt (spec §5.2), skipping None fields."""
     fields = [
         ("timestamp", datetime.now(timezone.utc).isoformat(timespec="seconds")),
         ("input", row.get("input")),

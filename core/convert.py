@@ -23,6 +23,7 @@ def ensure_available(*tool_paths: str) -> None:
 
 
 def _run(cmd: list[str]) -> subprocess.CompletedProcess:
+    """Run IfcConvert, decoding its UTF-16LE Windows stdout/stderr leniently for logging."""
     r = subprocess.run(cmd, capture_output=True)
     # IfcConvert emits UTF-16LE on Windows; decode leniently for logs.
     r_stdout = (r.stdout or b"").decode("utf-16-le", "ignore")

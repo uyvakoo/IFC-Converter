@@ -20,6 +20,7 @@ Box = tuple  # (xmin, xmax, ymin, ymax, zmin, zmax), entries may be None
 
 
 def storey_contained_guids(storey) -> set[str]:
+    """GlobalIds of the elements a storey directly contains (via IfcRelContainedInSpatialStructure)."""
     guids = set()
     for rel in getattr(storey, "ContainsElements", None) or []:
         for el in rel.RelatedElements:
@@ -39,6 +40,7 @@ def storey_z_box(storey, analysis, pad: float = 3.0) -> Box:
 
 
 def _overlaps(info, box: Box, tol: float = 1e-6) -> bool:
+    """True if the element's bbox has positive-length overlap with the box on every bounded axis."""
     mn, mx = info.bbox_min, info.bbox_max
     axes = [
         (box[0], box[1], mn[0], mx[0]),

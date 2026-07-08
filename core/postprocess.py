@@ -22,6 +22,7 @@ import tempfile
 
 
 def _run(cmd, glb_path, tmp):
+    """Run a compressor writing to `tmp`; on success move it over `glb_path`, else raise RuntimeError."""
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0 or not os.path.exists(tmp) or not os.path.getsize(tmp):
         raise RuntimeError(f"{os.path.basename(cmd[0])} failed (exit {r.returncode}): {r.stderr.strip()}")
