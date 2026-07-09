@@ -34,6 +34,10 @@ jobs:
       # Obfuscate the licensing modules (spec §6.3) BEFORE any build, so both bundles ship
       # licensing/*.pyd (native) instead of decompilable .pyc — and the §6.2 hard-coded public key is
       # compiled into core.pyd. Runs once on this fresh checkout; the .pyd persists for both builds.
+      # Cython is a build-time tool (not shipped), installed here; windows-latest already has MSVC.
+      - name: Install Cython (obfuscation build tool)
+        run: pip install "cython>=3,<4"
+
       - name: Obfuscate licensing (Cython -> .pyd)
         run: python scripts/obfuscate_licensing.py
 
