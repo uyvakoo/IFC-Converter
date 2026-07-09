@@ -68,11 +68,19 @@ def sha256(path):
 
 
 def run_selftest():
+    import tempfile
+
     env = dict(os.environ, QT_QPA_PLATFORM="offscreen")
     r = subprocess.run([EXE, "--selftest"], capture_output=True, text=True, env=env, timeout=120)
+    # The windowed exe writes its result to a file (its console output doesn't reach a captured pipe);
+    # fall back to captured stdout for a source/dev run.
     out = (r.stdout or "") + (r.stderr or "")
-    line = next((ln for ln in out.splitlines() if "selftest:" in ln), out.strip().splitlines()[-1:] or "")
-    return r.returncode == 0, (line if isinstance(line, str) else "selftest output unavailable")
+    try:
+        out += "\n" + open(os.path.join(tempfile.gettempdir(), "IFC_Converter_selftest.txt")).read()
+    except OSError:
+        pass
+    line = next((ln for ln in out.splitlines() if "selftest:" in ln), "selftest output unavailable")
+    return r.returncode == 0, line
 
 
 def main():
