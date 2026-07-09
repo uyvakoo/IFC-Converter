@@ -41,8 +41,8 @@ datas = _ifc_datas + _crypto_datas + [
     ("bin/gltfpack.exe", "bin"),
 ]
 
-# Optional Draco backend (fetched via fetch_binaries.py --with-draco). Bundled only when present, so
-# the default build is unaffected. node.exe + the gltf-pipeline npm tree power KHR_draco_mesh_compression.
+# Draco backend (fetched by default; fetch_binaries.py --no-draco skips it). Bundled only when present,
+# so a minimal build is unaffected. node.exe + the gltf-pipeline npm tree power KHR_draco_mesh_compression.
 if os.path.isfile("bin/node.exe"):
     datas.append(("bin/node.exe", "bin"))
 if os.path.isdir("bin/gltfpipe"):

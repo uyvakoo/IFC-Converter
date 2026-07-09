@@ -169,8 +169,8 @@ standardized package (end of doc).
 - GLB: `IfcConvert --y-up --use-material-names temp.ifc out.glb` → `gltfpack -i out.glb -o out.glb -cc`
 - STP: `IfcConvert --convert-back-units temp.ifc out.stp`
 - Build: `pyinstaller main.spec` — with `--collect-all ifcopenshell` (native OCC DLLs), hidden imports
-  (`ifcopenshell.express.express_parser`, `…util.unit`, `…geom.serializers`), `--strip --noupx`,
-  **no `--key`**; optional `signtool` code-signing.
+  (`ifcopenshell.express.express_parser`, `…util.unit`; `…geom.serializers` does **not** exist in 0.8.5
+  and is dropped), `--strip --noupx`, **no `--key`**; optional `signtool` code-signing.
 
 **Standardized per-file pipeline contract**
 open → **analyze** (iterator: bounds + inventory + progress) → **crop = mutate** (`remove_deep` on

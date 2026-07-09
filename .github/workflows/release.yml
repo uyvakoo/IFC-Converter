@@ -31,9 +31,9 @@ jobs:
           Write-Host "tag=$tag  APP_VERSION=$ver"
           if ($ver -ne $tag) { Write-Error "tag '$tag' != ui.APP_VERSION '$ver'"; exit 1 }
 
-      # Obfuscate the licensing modules (spec §6.3) BEFORE any build, so both bundles ship
+      # Obfuscate the licensing modules (spec §6.3) BEFORE the build, so the bundle ships
       # licensing/*.pyd (native) instead of decompilable .pyc — and the §6.2 hard-coded public key is
-      # compiled into core.pyd. Runs once on this fresh checkout; the .pyd persists for both builds.
+      # compiled into core.pyd. Runs on this fresh checkout; it removes the licensing .py sources.
       # Cython is a build-time tool (not shipped), installed here; windows-latest already has MSVC.
       - name: Install Cython (obfuscation build tool)
         run: pip install "cython>=3,<4"
@@ -41,41 +41,34 @@ jobs:
       - name: Obfuscate licensing (Cython -> .pyd)
         run: python scripts/obfuscate_licensing.py
 
-      # ---- meshopt-only bundle (default) ---------------------------------------------------------
-      - name: Fetch native binaries (meshopt)
+      # ---- The bundle: Draco is the default AR output (§1/§5.1), so fetch_binaries pulls the Draco
+      # toolchain (Node + gltf-pipeline) by default. One canonical, self-contained bundle. ------------
+      - name: Fetch native binaries (Draco default)
         run: python scripts/fetch_binaries.py
 
-      - name: Build meshopt bundle
+      - name: Build bundle
         run: pyinstaller main.spec --noconfirm --clean
 
-      - name: Self-test meshopt bundle
+      # The bundle is a console=False (GUI-subsystem) exe: its --selftest output doesn't reach a captured
+      # pipe, so it writes the result to %TEMP%\IFC_Converter_selftest.txt (main.py). Gate on that file.
+      # First run of a fresh unsigned exe is slow (AV first-scan), hence the wait.
+      - name: Self-test bundle (gate on the result file)
+        shell: pwsh
         env:
           QT_QPA_PLATFORM: offscreen
-        run: dist/IFC_Converter/IFC_Converter.exe --selftest
+        run: |
+          Remove-Item "$env:TEMP\IFC_Converter_selftest.txt" -ErrorAction SilentlyContinue
+          dist/IFC_Converter/IFC_Converter.exe --selftest
+          $f = "$env:TEMP\IFC_Converter_selftest.txt"
+          for ($i = 0; $i -lt 30 -and -not (Test-Path $f); $i++) { Start-Sleep -Seconds 2 }
+          if (-not (Test-Path $f)) { Write-Error "selftest produced no result"; exit 1 }
+          Get-Content $f
+          if ((Get-Content $f -Raw) -notmatch "9/9 OK") { Write-Error "selftest did not pass"; exit 1 }
 
-      - name: Package meshopt bundle
+      - name: Package bundle
         shell: pwsh
         run: |
           $zip = "IFC_Converter-${{ github.ref_name }}-win64.zip"
-          Compress-Archive -Path dist/IFC_Converter/* -DestinationPath $zip -Force
-          (Get-FileHash -Algorithm SHA256 $zip).Hash + "  $zip" | Out-File "$zip.sha256" -Encoding ascii
-
-      # ---- Draco-capable bundle (meshopt + gltf-pipeline) ----------------------------------------
-      - name: Fetch native binaries (+ Draco)
-        run: python scripts/fetch_binaries.py --with-draco
-
-      - name: Build Draco bundle
-        run: pyinstaller main.spec --noconfirm --clean
-
-      - name: Self-test Draco bundle
-        env:
-          QT_QPA_PLATFORM: offscreen
-        run: dist/IFC_Converter/IFC_Converter.exe --selftest
-
-      - name: Package Draco bundle
-        shell: pwsh
-        run: |
-          $zip = "IFC_Converter-${{ github.ref_name }}-win64-draco.zip"
           Compress-Archive -Path dist/IFC_Converter/* -DestinationPath $zip -Force
           (Get-FileHash -Algorithm SHA256 $zip).Hash + "  $zip" | Out-File "$zip.sha256" -Encoding ascii
 
@@ -87,5 +80,3 @@ jobs:
           files: |
             IFC_Converter-${{ github.ref_name }}-win64.zip
             IFC_Converter-${{ github.ref_name }}-win64.zip.sha256
-            IFC_Converter-${{ github.ref_name }}-win64-draco.zip
-            IFC_Converter-${{ github.ref_name }}-win64-draco.zip.sha256
