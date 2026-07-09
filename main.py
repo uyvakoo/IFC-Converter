@@ -45,6 +45,20 @@ def selftest() -> int:
         ck("public key hard-coded (embedded RSA-4096)", k.key_size == 4096)
     except Exception as e:
         ck(f"public key hard-coded ({e})", False)
+    try:
+        # licensing crypto works end-to-end in the bundle: sign a key with an ephemeral RSA pair and
+        # verify it (machine-bound). Proves PKCS1v15/SHA-256 sign+verify + the machineid path load.
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
+        _p = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        _pub = _p.public_key().public_bytes(
+            serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        _lic = licensing.sign_license(_p, "SELFTEST", "2099-12-31")
+        _ok = licensing.verify_license(_lic, _pub, current_machine="SELFTEST").ok
+        ck("licence sign+verify roundtrip", _ok)
+    except Exception as e:
+        ck(f"licence sign+verify roundtrip ({e})", False)
 
     # Real end-to-end conversion INSIDE the bundle: build an IFC, then run the full
     # pipeline (filter -> color -> crop -> IfcConvert -> gltfpack) and inspect the GLB.
