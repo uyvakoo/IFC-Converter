@@ -19,16 +19,19 @@ class BatchWorker(QObject):
     finished = Signal()
 
     def __init__(self, files, opts: dict):
+        """Hold the file list + pipeline options for a batch run on this worker's thread."""
         super().__init__()
         self._files = files
         self._opts = opts
         self._cancel = False
 
     def cancel(self) -> None:
+        """Request cooperative cancellation (checked between files); never force-terminates."""
         self._cancel = True
 
     @Slot()
     def run(self) -> None:
+        """Run the batch, forwarding progress/status signals and emitting fatal/finished at the end."""
         try:
             batch.run_batch(
                 self._files,

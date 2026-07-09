@@ -83,6 +83,7 @@ def _accessor(gltf: dict, buf: bytes, idx: int) -> np.ndarray:
 
 
 def _quat_matrix(x: float, y: float, z: float, w: float) -> np.ndarray:
+    """4x4 rotation matrix from a glTF (x, y, z, w) quaternion."""
     m = np.eye(4)
     m[:3, :3] = [
         [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
@@ -93,6 +94,7 @@ def _quat_matrix(x: float, y: float, z: float, w: float) -> np.ndarray:
 
 
 def _node_local(node: dict) -> np.ndarray:
+    """Local 4x4 transform of a glTF node, from its `matrix` or its TRS (translation/rotation/scale)."""
     if "matrix" in node:  # glTF stores column-major; transpose to row-major for point' = M @ p
         return np.array(node["matrix"], dtype=np.float64).reshape(4, 4).T
     m = np.eye(4)
@@ -108,6 +110,7 @@ def _node_local(node: dict) -> np.ndarray:
 
 
 def _material_color(gltf: dict, prim: dict) -> tuple[float, float, float]:
+    """RGB baseColorFactor of a primitive's material, or the default colour when absent."""
     mi = prim.get("material")
     if mi is None:
         return _DEFAULT_COLOR
@@ -122,6 +125,7 @@ class _Mesh:
     __slots__ = ("name", "points", "indices", "color")
 
     def __init__(self, name, points, indices, color):
+        """Hold one decoded mesh: name, (n,3) world-space points, triangle indices, and RGB colour."""
         self.name = name
         self.points = points  # (n,3) float32 world-space
         self.indices = indices  # (m,) int, triangle list
@@ -164,10 +168,12 @@ def _meshes_from_glb(gltf: dict, buf: bytes) -> list[_Mesh]:
 
 
 def _fmt_floats(rows: np.ndarray) -> str:
+    """Format an (n,k) array as a USDA tuple list: `(a, b, c), (d, e, f), ...`."""
     return ", ".join("(" + ", ".join(f"{v:.6g}" for v in row) + ")" for row in rows)
 
 
 def _usda(meshes: list[_Mesh]) -> str:
+    """Build the USDA (`.usda`) scene text for the decoded meshes (Y-up, metres, per-mesh colour)."""
     lines = [
         "#usda 1.0",
         "(",
