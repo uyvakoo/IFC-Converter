@@ -46,14 +46,20 @@ licence roundtrip + real IFC→GLB all pass). ✔
 - **Report:** timestamp, input, crop, filter, entities processed/removed, `unit_scale_to_m=0.001`
   (mm model read correctly, §5.1), glb/stp/usdz bytes, elapsed, status. ✔
 
-## Caveat — GLB compression was OFF in this run
-The GLBs above are **plain, uncompressed** glTF (`extensionsRequired = None`); the **"Compress GLB for
-AR"** checkbox was not ticked, so the spec's default **Draco-compressed, low-poly** output
-(`KHR_draco_mesh_compression`, ~7.9 KB for Architecture) is **not** demonstrated in these screenshots.
-The Draco/low-poly default is covered by the automated suites (`validate_core` M5/M5d/M5l), the
-frozen-bundle `scripts/draco_check.py`, and the `acceptance_report.py` compress case. **To complete the
-evidence, re-run one conversion with "Compress GLB for AR" ticked** and capture the resulting GLB
-(it will be ~3–4× smaller and declare `KHR_draco_mesh_compression`).
+## Draco compression — proven from the shipped bundle (no VM re-run needed)
+The GLBs in the GUI screenshots above are **plain, uncompressed** glTF (`extensionsRequired = None`)
+because **"Compress GLB for AR"** was not ticked in that run. The spec's default **Draco-compressed,
+low-poly** output is proven from the **same shipped exe** (`5e1ae7d3…`) in
+[evidence/draco-proof-local.txt](evidence/draco-proof-local.txt) — run on the VM's own model
+(Building-Architecture):
+
+| | bytes | `extensionsRequired` | colours |
+|---|--:|---|---|
+| plain (compress off — as in the VM screenshots) | 27,408 | `None` | Structural, Architectural |
+| **draco (compress on)** | **7,944** (×0.29) | **`KHR_draco_mesh_compression`** | Structural, Architectural |
+
+It is additionally covered by the automated suites (`validate_core` M5/M5d/M5l), the frozen-bundle
+`scripts/draco_check.py` (**DRACO PASS**), and the `acceptance_report.py` compress case.
 
 ## Sign-off (§8.4)
 | Field | Value |
@@ -65,6 +71,6 @@ evidence, re-run one conversion with "Compress GLB for AR" ticked** and capture 
 | Self-test | ☑ `9/9 OK` |
 | Licence activation | ☑ |
 | GUI conversion (GLB/STP/USDZ + colours) | ☑ |
-| Draco-compressed GLB captured | ☐ (see caveat — recommend a re-run) |
-| Result | ☐ PASS  ☐ PASS w/ note  ☐ FAIL |
+| Draco-compressed GLB (KHR_draco) | ☑ proven from the shipped bundle — [evidence/draco-proof-local.txt](evidence/draco-proof-local.txt) |
+| Result | ☐ PASS  ☐ FAIL |
 | Signature | __________________________ |

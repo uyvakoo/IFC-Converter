@@ -1,0 +1,12 @@
+Draco / low-poly proof â€” generated locally from the SHIPPED bundle (same exe the VM used)
+exe SHA256: 5e1ae7d3c780f7e7f6fb61e31ea640502cb095bee13f2c7425a14d29864bf6b8
+date: 2026-07-09 (UTC)
+
+== scripts/draco_check.py against the frozen bundle (licensed --cli) ==
+extensionsRequired=['KHR_draco_mesh_compression']  materials=['Structural', 'Architectural']  triangles=221->221  size=27408->7944
+==== DRACO PASS (frozen bundle) ====
+
+== direct --cli on Building-Architecture.ifc (the VM's model): plain vs draco ==
+plain GLB : 27408 bytes  extensionsRequired=None  colors=[('Structural', (0.8, 0.8, 0.8)), ('Architectural', (0.6, 0.3, 0.1))]
+draco GLB : 7944 bytes  extensionsRequired=['KHR_draco_mesh_compression']  colors=[('Structural', (0.8, 0.8, 0.8)), ('Architectural', (0.6, 0.3, 0.1))]
+ratio     : x0.29 (compressed, colours preserved) — matches the VM output but with compression ON
