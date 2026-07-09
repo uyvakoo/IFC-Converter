@@ -41,17 +41,18 @@ Produces `IFC_Converter-v0.1.0-win64-draco.zip` + `.sha256`.
 
 ## Obfuscated production build (licensing hardening, free — no PyArmor)
 
-For a build that hardens the licence check (spec §6.3), Cython-compile `licensing/` to native `.pyd`
-before packaging. Add `-Obfuscate` (needs `cython` + MSVC Build Tools on the host — see `BUILD.md` §4):
+Release builds hardening the licence check (spec §6.3) are now the **default**: both `make_release.ps1`
+and the GitHub `release.yml` workflow Cython-compile `licensing/` to native `.pyd` before packaging, so
+the shipped bundle carries no licence `.py`/`.pyc` and the §6.2 hard-coded public key lives inside
+`core.pyd`. Needs `cython` + MSVC Build Tools on the host (see `BUILD.md` §4). Use `-NoObfuscate` to skip:
 ```powershell
-# on a FRESH checkout (it strips licensing .py sources), e.g.
+# on a FRESH checkout (obfuscation strips licensing .py sources), e.g.
 git clone https://github.com/MutugiD/ifc-conversion-engine.git rel && cd rel
-powershell -ExecutionPolicy Bypass -File scripts\make_release.ps1 -Variant draco -Tag v0.1.0 -Obfuscate
+powershell -ExecutionPolicy Bypass -File scripts\make_release.ps1 -Variant draco -Tag v0.1.0
 ```
 The resulting bundle ships compiled `licensing\*.pyd` (no licence `.py`/`.pyc`); the RSA private key is
-never involved. `--selftest` and the licence flow are unchanged. The default GitHub release workflow
-builds the **un-obfuscated** tree — cut the obfuscated bundle locally (or add the step to a private
-release workflow) so the free obfuscation stays a deliberate, key-holder action.
+never involved. `--selftest` and the licence flow are unchanged. The GitHub `release.yml` workflow runs
+the obfuscation step on its fresh checkout, so tagged releases are obfuscated by default.
 
 ## Publishing (this repo: `MutugiD/ifc-conversion-engine`, private)
 

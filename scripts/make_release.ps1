@@ -14,7 +14,7 @@ param(
   [ValidateSet("meshopt", "draco")][string]$Variant = "meshopt",
   [string]$Tag = "v0.1.0",
   [switch]$SkipBuild,
-  [switch]$Obfuscate   # Cython-compile licensing/ to .pyd first (production; removes licensing .py — use a fresh checkout)
+  [switch]$NoObfuscate  # skip Cython obfuscation (default: ON). Obfuscation removes licensing .py — use a fresh checkout.
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
@@ -25,8 +25,8 @@ if (-not $SkipBuild) {
   if ($Variant -eq "draco") { python scripts/fetch_binaries.py --with-draco }
   else { python scripts/fetch_binaries.py }
 
-  if ($Obfuscate) {
-    Write-Host "[2/4] obfuscate licensing (Cython -> .pyd)"
+  if (-not $NoObfuscate) {
+    Write-Host "[2/4] obfuscate licensing (Cython -> .pyd) — spec §6.3; use -NoObfuscate to skip"
     python scripts/obfuscate_licensing.py
     if ($LASTEXITCODE -ne 0) { Write-Error "obfuscation failed"; exit 1 }
   }

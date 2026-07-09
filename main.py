@@ -32,17 +32,33 @@ def selftest() -> int:
     ck(f"ifcopenshell {ifcopenshell.version} imports (native libs)", True)
     ck("IfcConvert bundled", os.path.isfile(paths.ifcconvert()))
     ck("gltfpack bundled", os.path.isfile(paths.gltfpack()))
-    ck("public_key bundled", os.path.isfile(paths.public_key()))
     try:
         r = subprocess.run([paths.ifcconvert(), "--version"], capture_output=True)
         ck("IfcConvert runs", r.returncode == 0)
     except Exception as e:
         ck(f"IfcConvert runs ({e})", False)
     try:
-        licensing.load_public_key_pem()
-        ck("public key loads", True)
+        from cryptography.hazmat.primitives import serialization
+
+        # §6.2: the public key is hard-coded in code (not a bundled file). Verify it loads as RSA-4096.
+        k = serialization.load_pem_public_key(licensing.load_public_key_pem())
+        ck("public key hard-coded (embedded RSA-4096)", k.key_size == 4096)
     except Exception as e:
-        ck(f"public key loads ({e})", False)
+        ck(f"public key hard-coded ({e})", False)
+    try:
+        # licensing crypto works end-to-end in the bundle: sign a key with an ephemeral RSA pair and
+        # verify it (machine-bound). Proves PKCS1v15/SHA-256 sign+verify + the machineid path load.
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
+        _p = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        _pub = _p.public_key().public_bytes(
+            serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        _lic = licensing.sign_license(_p, "SELFTEST", "2099-12-31")
+        _ok = licensing.verify_license(_lic, _pub, current_machine="SELFTEST").ok
+        ck("licence sign+verify roundtrip", _ok)
+    except Exception as e:
+        ck(f"licence sign+verify roundtrip ({e})", False)
 
     # Real end-to-end conversion INSIDE the bundle: build an IFC, then run the full
     # pipeline (filter -> color -> crop -> IfcConvert -> gltfpack) and inspect the GLB.

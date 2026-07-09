@@ -34,11 +34,11 @@ hiddenimports = _ifc_hidden + _crypto_hidden + [
     "PySide6.QtSvgWidgets",
 ]
 
-# Bundled binaries + the hard-coded public key (resolved at runtime via core.paths/_MEIPASS).
+# Bundled binaries. The RSA public key is NOT bundled as a file — it is hard-coded in licensing/core.py
+# (§6.2), so there is no loose public_key.pem in the bundle for an attacker to swap.
 datas = _ifc_datas + _crypto_datas + [
     ("bin/IfcConvert.exe", "bin"),
     ("bin/gltfpack.exe", "bin"),
-    ("licensing/public_key.pem", "licensing"),
 ]
 
 # Optional Draco backend (fetched via fetch_binaries.py --with-draco). Bundled only when present, so
