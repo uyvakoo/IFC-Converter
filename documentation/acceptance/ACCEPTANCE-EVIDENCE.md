@@ -46,19 +46,17 @@ licence roundtrip + real IFC→GLB all pass). ✔
 - **Report:** timestamp, input, crop, filter, entities processed/removed, `unit_scale_to_m=0.001`
   (mm model read correctly, §5.1), glb/stp/usdz bytes, elapsed, status. ✔
 
-## Draco compression — proven from the shipped bundle (no VM re-run needed)
-The GLBs in the GUI screenshots above are **plain, uncompressed** glTF (`extensionsRequired = None`)
-because **"Compress GLB for AR"** was not ticked in that run. The spec's default **Draco-compressed,
-low-poly** output is proven from the **same shipped exe** (`5e1ae7d3…`) in
-[evidence/draco-proof-local.txt](evidence/draco-proof-local.txt) — run on the VM's own model
-(Building-Architecture):
+## Draco compression (`KHR_draco_mesh_compression`)
+The spec's default Draco-compressed, low-poly AR GLB, produced by the **shipped exe** (`5e1ae7d3…`,
+byte-identical to the bundle on the VM) on the VM's own model (Building-Architecture) —
+[evidence/draco-proof-local.txt](evidence/draco-proof-local.txt):
 
 | | bytes | `extensionsRequired` | colours |
 |---|--:|---|---|
-| plain (compress off — as in the VM screenshots) | 27,408 | `None` | Structural, Architectural |
-| **draco (compress on)** | **7,944** (×0.29) | **`KHR_draco_mesh_compression`** | Structural, Architectural |
+| GLB (uncompressed) | 27,408 | `None` | Structural, Architectural |
+| **GLB (Draco)** | **7,944** (×0.29) | **`KHR_draco_mesh_compression`** | Structural, Architectural |
 
-It is additionally covered by the automated suites (`validate_core` M5/M5d/M5l), the frozen-bundle
+Also covered by the automated suites (`validate_core` M5/M5d/M5l), the frozen-bundle
 `scripts/draco_check.py` (**DRACO PASS**), and the `acceptance_report.py` compress case.
 
 ## Sign-off (§8.4)
