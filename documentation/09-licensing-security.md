@@ -1,7 +1,9 @@
 # 09 — Licensing & Security
 
-> ✔ **APPROVED (2026-06-23):** drop PyInstaller `--key`; obfuscate licensing/hashing with **PyArmor**;
-> keep `--strip`/`--noupx` (D2). See [02 — decision log](02-defects-and-remedies.md#decision-log).
+> ✔ **APPROVED (2026-06-23):** drop PyInstaller `--key`; obfuscate licensing/hashing modules; keep
+> `--strip`/`--noupx` (D2). **As-built:** obfuscation is done with **free Cython** (native `.pyd`),
+> not PyArmor (paid) — §6.3 lists PyArmor only as an example and marks obfuscation "strongly
+> recommended". See [02 — decision log](02-defects-and-remedies.md#decision-log).
 
 ## Purpose
 Gate the app behind a vendor-signed, machine-locked license with expiry and basic clock-rollback
@@ -17,7 +19,9 @@ protection, and harden the sensitive modules — all offline.
 
 ## RSA license validation (spec §6.2)
 - License file = JSON `{ machine_hash, expiry, signature }`.
-- A **4096-bit RSA public key is hard-coded** in the app (PEM). The private key stays with the vendor.
+- A **4096-bit RSA public key is hard-coded** as a constant in `licensing/core.py` (compiled into
+  `core.pyd` for release), **not** shipped as a loose `public_key.pem` — so it cannot be swapped on disk
+  to bypass the check (§6.2). The private key stays with the vendor and never ships.
 - **Validation order:** (1) read `license.key`; (2) verify the RSA signature over a **canonical
   serialization** of the signed fields using the public key + PKCS1v15 + SHA-256; (3) check
   `machine_hash` == current machine; (4) check `expiry` not passed; (5) unlock, else show
@@ -36,12 +40,17 @@ no whitespace ambiguity). Mismatched serialization between signer and verifier i
 - Optionally cross-check `pool.ntp.org` via `ntplib`; air-gapped → NTP usually fails, so the registry
   check is the real guard.
 - **Threat model (be honest):** this stops casual clock-winding only. A user with local admin can edit
-  or clear the HKCU key. Document it as anti-casual-tamper, not strong security (D11). Treat a missing
-  key as "first run."
+  or clear the HKCU key. Document it as anti-casual-tamper, not strong security (D11).
+- **Fail-safe, never fatal:** a missing, unreadable, or corrupt/hand-edited stamp is treated as "first
+  run" and a failed registry write is swallowed — the guard degrades rather than crashing the app at
+  launch (regression-tested in `validate_phaseb`).
 
 ## Anti-debug / obfuscation (spec §6.3) — D2
 - **Do not** use PyInstaller `--key` (removed in 6.0; D2). Obfuscate `licensing/*` and the hashing code
-  with **PyArmor**.
+  with **free Cython** — `scripts/obfuscate_licensing.py` compiles them to native `licensing/*.pyd`
+  (machine code, no `.py`/`.pyc` to decompile) with the hard-coded public key baked in. This is the
+  default in release builds (`release.yml`, `make_release.ps1`; `-NoObfuscate` opts out). PyArmor (paid)
+  is **not** required — §6.3 lists it only as an example and marks obfuscation "strongly recommended".
 - `--strip` debug symbols; `--noupx` (UPX trips AV false-positives).
 - No `print()`/tracebacks that leak licensing logic to users.
 - **Reality:** obfuscation raises effort, not impossibility. Code-signing the `.exe` (see
