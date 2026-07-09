@@ -31,6 +31,12 @@ jobs:
           Write-Host "tag=$tag  APP_VERSION=$ver"
           if ($ver -ne $tag) { Write-Error "tag '$tag' != ui.APP_VERSION '$ver'"; exit 1 }
 
+      # Obfuscate the licensing modules (spec §6.3) BEFORE any build, so both bundles ship
+      # licensing/*.pyd (native) instead of decompilable .pyc — and the §6.2 hard-coded public key is
+      # compiled into core.pyd. Runs once on this fresh checkout; the .pyd persists for both builds.
+      - name: Obfuscate licensing (Cython -> .pyd)
+        run: python scripts/obfuscate_licensing.py
+
       # ---- meshopt-only bundle (default) ---------------------------------------------------------
       - name: Fetch native binaries (meshopt)
         run: python scripts/fetch_binaries.py

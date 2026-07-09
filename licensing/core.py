@@ -31,12 +31,30 @@ def machine_hash() -> str:
     return machineid.id()
 
 
-def load_public_key_pem() -> bytes:
-    """Load the bundled public key PEM (resolved via _MEIPASS in a frozen build)."""
-    from core import paths
+# Spec §6.2: the RSA public key is HARD-CODED here, not read from a swappable file. In a release build
+# this module is Cython-compiled to licensing/core.pyd (scripts/obfuscate_licensing.py), so the key lives
+# in native machine code. This closes the key-substitution bypass — an attacker can no longer replace a
+# loose public_key.pem on disk to self-sign licenses; forging one still requires the vendor private key.
+_PUBLIC_KEY_PEM = b"""-----BEGIN PUBLIC KEY-----
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAsupK+KQwz34PnODBfiII
+0AWU76kfIonMU/Ca04vtno9nXESx1bdFOX7L4wIWUE/AhNrFdkOF6kqRwbcOb2bd
+4rasTQTha30fViBI8nOocNgzdVEcx42svq2CJ7yhBMrMqkfTaJqWVfQtCPQ1frv5
+hF8fesmyTKqCsGp1KxMgnYYf3U83OUo3oPqpc3XHFC5PgnoHblehE+BXfmRQPft4
+xMg87iP4wN23ouYLEh9J2/g9+xnO49lLqN6ni8L2Njnu7iviQpRbGTnv6p8WtUNf
+Mjo1Ji4AbSJGB2YwqXFUWvXufDqSH26JOTRkPHrJkTsa2oRcyapKf0he1GhvXRbN
+ECh7oxKeb4BigZFb0M7hVt7GLSieo2Ri0KKLfG2X8siEXQhCKtdo+q7iimXTafQM
+J+3tQ0lQK2PPmJIg+M+92n0HV722bOdxdh/qdMwO3E7+oTyXooX9QxjthWP19LEe
+alw45j2UD0O8NkFqP1vvLYmDxpTtmYEfkpDceG1S/iKE+wbGrH4SVT1GYrsgIVad
+yGMxklUOQTneiy5XgFf55h+eJrpBOUdJyVbxBlQoMwyS3H+U6AYn0NWQ302fEg3j
+NtCrd+bNXtzHnyvGIakY6lGM04JKEqt2TOCHBRTm1RQkxUMSf78CRaXVdzxd0che
+eW39iuJdUi3KBsVL3Ag0/c0CAwEAAQ==
+-----END PUBLIC KEY-----
+"""
 
-    with open(paths.public_key(), "rb") as f:
-        return f.read()
+
+def load_public_key_pem() -> bytes:
+    """Return the hard-coded RSA public key PEM (§6.2 — embedded in code, not read from disk)."""
+    return _PUBLIC_KEY_PEM
 
 
 def canonical_payload(machine_hash_: str, expiry: str) -> bytes:
