@@ -1,0 +1,8 @@
+
+
+Algorithm : SHA256
+Hash      : 8194EAA45C7565F5A94882A8C69A810BF0FC3119F3E8E59663B97FF4EC8526A4
+Path      : C:\Users\Administrator\Documents\ifc-v1\IFC_Converter.exe
+
+
+

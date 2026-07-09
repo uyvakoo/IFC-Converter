@@ -1,0 +1,1 @@
+[OK] sample-large-building.ifc schema=IFC4 crop=none kept=10 removed=8 styled_items=8 glb=27408 stp=1047113 3.673s

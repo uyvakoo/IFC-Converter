@@ -1,0 +1,5 @@
+OS: Microsoft Windows Server 2025 Datacenter
+RAM_GB: 1.8
+Python_on_PATH: True
+Input: C:\Users\Administrator\Downloads\sample-large-building.ifc (0.2 MB)
+Exe: C:\Users\Administrator\Documents\ifc-v1\IFC_Converter.exe
