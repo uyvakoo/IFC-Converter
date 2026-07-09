@@ -105,7 +105,7 @@ def process(
     ifcconvert=None,
     gltfpack=None,
     compress=False,
-    compress_mode="meshopt",
+    compress_mode="draco",  # spec §1/§5.1 default: Draco-compressed, low-poly AR GLB
     node=None,
     gltf_pipeline=None,
     simplify=0.5,

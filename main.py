@@ -86,9 +86,12 @@ def selftest() -> int:
                 ifcconvert=paths.ifcconvert(),
                 gltfpack=paths.gltfpack(),
                 compress=True,
+                # exercise the default (draco) path in-bundle; wire the toolchain as the UI/CLI do
+                node=paths.node(),
+                gltf_pipeline=paths.gltf_pipeline(),
             )
             glb_ok = bool(res.glb) and os.path.isfile(res.glb) and os.path.getsize(res.glb) > 0
-            ck("real IFC -> GLB conversion (IfcConvert + gltfpack)", glb_ok)
+            ck("real IFC -> GLB conversion (IfcConvert + gltfpack + draco)", glb_ok)
             if glb_ok:
                 data = open(res.glb, "rb").read()
                 clen = struct.unpack_from("<I", data, 12)[0]

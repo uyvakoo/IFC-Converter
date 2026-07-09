@@ -164,6 +164,7 @@ def m5():
         ifcconvert=IFCCONVERT,
         gltfpack=GLTFPACK,
         compress=True,
+        compress_mode="meshopt",  # this test is the gltfpack/meshopt path (default is now draco)
         simplify=0.5,
     )
     cs = comp.compress_stats
@@ -185,6 +186,7 @@ def m5_draco():
     import shutil as _sh
 
     plain = pipeline.process(REAL, OUT, list(filtering.ALL_GROUPS), targets=("glb",), ifcconvert=IFCCONVERT)
+    plain_tris = glbtools.triangle_count(plain.glb)
     # Wiring/error path is CI-safe (no Node needed): draco mode must fail clearly without its tools.
     err = ""
     try:
@@ -193,11 +195,11 @@ def m5_draco():
         err = str(e)
     check("draco without Node -> clear error", "Node" in err, err)
 
-    # Real Draco run when a Node + gltf-pipeline is available (bundled via --with-draco, or system Node).
+    # Real Draco run when a Node + gltf-pipeline is available (bundled by default, or system Node).
     node = paths.node() if os.path.isfile(paths.node()) else _sh.which("node")
     gp = paths.gltf_pipeline()
     if not (node and os.path.isfile(gp)):
-        print("      skip real Draco run (node/gltf-pipeline not fetched — see fetch_binaries --with-draco)")
+        print("      skip real Draco run (node/gltf-pipeline not fetched — see fetch_binaries --no-draco)")
         return
     comp = pipeline.process(
         REAL,
@@ -205,17 +207,73 @@ def m5_draco():
         list(filtering.ALL_GROUPS),
         targets=("glb",),
         ifcconvert=IFCCONVERT,
+        gltfpack=GLTFPACK,
         compress=True,
         compress_mode="draco",
         node=node,
         gltf_pipeline=gp,
+        simplify=0.5,
     )
     cs = comp.compress_stats
     check("draco compress stats (mode=draco)", cs and cs.get("mode") == "draco", str(cs))
     exts = _glb_extensions_required(comp.glb)
     check("GLB declares KHR_draco_mesh_compression", "KHR_draco_mesh_compression" in exts, str(exts))
     check("draco keeps materials/colors", len(glbtools.material_names(comp.glb)) > 0)
-    print(f"      info: bytes {cs['bytes_before']}->{cs['bytes_after']} (x{cs['ratio']})")
+    check("draco shrinks the GLB", cs["bytes_after"] < cs["bytes_before"], str(cs))
+    # real_building is hard-edged box geometry, which gltfpack's border-aware simplifier correctly does
+    # NOT collapse — triangles are preserved here (a wall must stay a wall). The low-poly/-si decimation
+    # stage is proven on a genuinely decimatable mesh in m5_lowpoly().
+    draco_tris = glbtools.triangle_count(comp.glb)
+    check(
+        "draco preserves box-geometry triangles (no corruption)",
+        draco_tris == plain_tris,
+        f"{plain_tris}->{draco_tris}",
+    )
+    print(
+        f"      info: tris {plain_tris}->{draco_tris}, "
+        f"bytes {cs['bytes_before']}->{cs['bytes_after']} (x{cs['ratio']})"
+    )
+
+
+def m5_lowpoly():
+    print("M5l AR low-poly — -si decimation (spec §1 'low-poly'/--optimize) on a decimatable mesh")
+    import tempfile
+
+    fd, dense = tempfile.mkstemp(suffix=".glb")
+    os.close(fd)
+    try:
+        n0 = glbtools.make_dense_glb(dense, n=40)  # 3200-triangle smooth curved surface
+        # meshopt path (CI-safe, no Node): -si must roughly halve the triangles at simplify=0.5.
+        import shutil as _sh
+
+        mo = dense + ".mo.glb"
+        _sh.copy(dense, mo)
+        postprocess.compress_glb(GLTFPACK, mo, mode="meshopt", simplify=0.5)
+        mo_tris = glbtools.triangle_count(mo)
+        check("meshopt -si decimates ~50% (low-poly)", mo_tris <= n0 * 0.65, f"{n0}->{mo_tris}")
+        check("decimated mesh keeps its material", len(glbtools.material_names(mo)) > 0)
+        # draco path (needs Node): decimate THEN Draco — must be both low-poly and KHR_draco.
+        node = paths.node() if os.path.isfile(paths.node()) else __import__("shutil").which("node")
+        gp = paths.gltf_pipeline()
+        if node and os.path.isfile(gp):
+            dr = dense + ".dr.glb"
+            _sh.copy(dense, dr)
+            postprocess.compress_glb(GLTFPACK, dr, mode="draco", simplify=0.5, node=node, gltf_pipeline=gp)
+            dr_tris = glbtools.triangle_count(dr)
+            exts = _glb_extensions_required(dr)
+            check("draco is low-poly (triangles reduced)", dr_tris <= n0 * 0.65, f"{n0}->{dr_tris}")
+            check(
+                "draco low-poly output still declares KHR_draco_mesh_compression",
+                "KHR_draco_mesh_compression" in exts,
+                str(exts),
+            )
+            print(f"      info: dense {n0} tris -> meshopt {mo_tris}, draco {dr_tris}")
+        else:
+            print(f"      info: dense {n0} tris -> meshopt {mo_tris} (skip draco leg — no Node)")
+    finally:
+        for p in (dense, dense + ".mo.glb", dense + ".dr.glb"):
+            if os.path.exists(p):
+                os.remove(p)
 
 
 def schema_compat():
@@ -340,6 +398,7 @@ def main():
     m4()
     m5()
     m5_draco()
+    m5_lowpoly()
     schema_compat()
     crop_cascade_safe()
     usdz_export()

@@ -18,8 +18,8 @@ Python **3.11.x** (64-bit), then:
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\python -m pip install --require-hashes -r requirements-dev.txt
-.\.venv\Scripts\python scripts\fetch_binaries.py            # IfcConvert + gltfpack -> bin\
-.\.venv\Scripts\python scripts\fetch_binaries.py --with-draco   # optional: + Node + gltf-pipeline (Draco)
+.\.venv\Scripts\python scripts\fetch_binaries.py            # IfcConvert + gltfpack + Draco (Node + gltf-pipeline)
+.\.venv\Scripts\python scripts\fetch_binaries.py --no-draco     # minimal: skip the Draco toolchain (meshopt only)
 ```
 
 ## End-to-end usage
@@ -28,7 +28,7 @@ GUI: `.\.venv\Scripts\python main.py`
 Headless pipeline:
 ```powershell
 .\.venv\Scripts\python cli.py model.ifc --out out --classes Structural,MEP,Architectural `
-    --storey "Ground" --glb --stp --compress --compress-mode meshopt   # or: draco
+    --storey "Ground" --glb --stp --compress   # --compress-mode draco (default) | meshopt | quantize
 ```
 Classes map to four colour groups (Structural / MEP / Architectural / Cables); `--storey` or
 `--xyz xmin,xmax,…` crops; each run writes `conversion_report.txt`.

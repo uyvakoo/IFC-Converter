@@ -1,15 +1,16 @@
 """
 F5 (AR optimization) — GLB post-compression, pluggable backend.
 
-IfcConvert can't compress (no --draco/--optimize, D1). This module decimates + compresses the plain
-GLB in place. Two modes so the client's ARKit decoder decision (open D1 sub-item) is a config switch,
-not a rewrite:
+IfcConvert has no --draco/--optimize (D1), so this module reproduces the spec's mandated
+`--draco --optimize` (§1, §5.1: "highly compressed, low-poly" AR GLB) as a post-step on the plain GLB:
 
-  mode="meshopt"  (default) — gltfpack -si -cc  -> EXT_meshopt_compression (validated, ~3x smaller)
-  mode="quantize"           — gltfpack -si      -> KHR_mesh_quantization only (broadest loader compat)
-  mode="draco"              — gltf-pipeline -d  -> KHR_draco_mesh_compression (needs bundled Node tool)
+  mode="draco"   (default, spec) — gltfpack -si (low-poly) + gltf-pipeline -d  -> KHR_draco_mesh_compression
+  mode="meshopt"                 — gltfpack -si -cc  -> EXT_meshopt_compression (~3x smaller)
+  mode="quantize"                — gltfpack -si      -> KHR_mesh_quantization only (broadest loader compat)
 
-`-kn`/`-km` keep node + material names so colored materials and per-element traceability survive.
+The `-optimize`/low-poly step (gltfpack -si triangle decimation) applies to ALL modes, so draco is now
+both decimated AND Draco-compressed. `-kn`/`-km` keep node + material names so the assigned colours and
+per-element traceability survive every stage.
 """
 
 from __future__ import annotations
@@ -38,8 +39,8 @@ def compress_glb(
 ) -> dict:
     """Optimize `glb_path` in place. Returns {mode, bytes_before, bytes_after, ratio}.
 
-    meshopt/quantize use gltfpack; draco uses `node gltf-pipeline.js -d` (KHR_draco_mesh_compression).
-    Draco compresses the mesh losslessly (no decimation), so `simplify` applies to gltfpack modes only.
+    meshopt/quantize use gltfpack; draco decimates with gltfpack then Draco-encodes via
+    `node gltf-pipeline.js -d` (KHR_draco_mesh_compression). `simplify` (low-poly) applies to all modes.
     """
     before = os.path.getsize(glb_path)
     fd, tmp = tempfile.mkstemp(suffix=".glb")
@@ -59,6 +60,18 @@ def compress_glb(
                 raise RuntimeError(
                     f"draco mode requires the bundled gltf-pipeline (gltf_pipeline={gltf_pipeline!r})"
                 )
+            # Stage 1 (the spec's --optimize / low-poly): gltfpack -si decimates. -noq keeps geometry
+            # un-quantized so Draco is the sole mesh compression (no KHR_mesh_quantization clash);
+            # -kn/-km preserve the assigned colours. Skipped when simplify disables decimation.
+            if simplify and simplify < 1.0:
+                _run(
+                    [gltfpack, "-i", glb_path, "-o", tmp, "-si", str(simplify), "-noq", "-kn", "-km"],
+                    glb_path,
+                    tmp,
+                )
+                fd2, tmp = tempfile.mkstemp(suffix=".glb")  # fresh scratch for stage 2
+                os.close(fd2)
+            # Stage 2 (the spec's --draco): KHR_draco_mesh_compression via gltf-pipeline.
             _run([node, gltf_pipeline, "-i", glb_path, "-o", tmp, "-d"], glb_path, tmp)
         else:
             raise ValueError(f"unknown compress mode: {mode!r}")

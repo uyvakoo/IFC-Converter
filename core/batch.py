@@ -36,7 +36,7 @@ def run_batch(
     ifcconvert=None,
     gltfpack=None,
     compress=False,
-    compress_mode="meshopt",
+    compress_mode="draco",  # spec §1/§5.1 default: Draco-compressed, low-poly AR GLB
     node=None,
     gltf_pipeline=None,
     simplify=0.5,
@@ -51,7 +51,8 @@ def run_batch(
     convert.ensure_available(ifcconvert)
     if compress:
         if compress_mode == "draco":
-            convert.ensure_available(node, gltf_pipeline)
+            # draco decimates with gltfpack (stage 1) then Draco-encodes with node+gltf-pipeline (stage 2)
+            convert.ensure_available(gltfpack, node, gltf_pipeline)
         else:
             convert.ensure_available(gltfpack)
 

@@ -51,11 +51,11 @@ def main(argv=None):
     p.add_argument("--compress", action="store_true", help="compress the GLB for AR (F5)")
     p.add_argument(
         "--compress-mode",
-        default="meshopt",
+        default="draco",
         choices=["meshopt", "quantize", "draco"],
-        help="meshopt/quantize via gltfpack (default); draco via gltf-pipeline (KHR_draco_mesh_compression)",
+        help="draco (default, spec) = low-poly + KHR_draco_mesh_compression; meshopt/quantize via gltfpack",
     )
-    p.add_argument("--simplify", type=float, default=0.5, help="gltfpack triangle ratio 0..1 (meshopt)")
+    p.add_argument("--simplify", type=float, default=0.5, help="gltfpack triangle decimation ratio 0..1")
     p.add_argument("--ifcconvert", default=DEFAULT_IFCCONVERT)
     p.add_argument("--gltfpack", default=DEFAULT_GLTFPACK)
     p.add_argument("--node", default=DEFAULT_NODE, help="Node runtime (draco mode)")
