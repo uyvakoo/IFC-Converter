@@ -3,7 +3,7 @@
 Validate real Draco compression through the BUILT bundle (--cli --compress-mode draco).
 
 Asserts the bundle's gltf-pipeline backend produces a GLB that declares KHR_draco_mesh_compression
-and keeps its materials. Skips cleanly if the bundle was built without --with-draco (no node.exe).
+and keeps its materials. Skips cleanly if the bundle was built with --no-draco (no node.exe).
 
     python scripts/draco_check.py [path\\to\\IFC_Converter.exe]
 """

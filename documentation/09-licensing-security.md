@@ -64,7 +64,7 @@ no whitespace ambiguity). Mismatched serialization between signer and verifier i
 - `ntplib.NTPClient` (optional, best-effort).
 
 ## Defects & risks
-- **D2** (High) — `--key` contradiction; resolve with PyArmor.
+- **D2** (High) — `--key` contradiction; resolve with free Cython → `.pyd` obfuscation.
 - **D11** (Info) — clock guard is deterrence; document honestly.
 - Canonical-serialization mismatch → false rejects (most common licensing bug).
 - Hard-coded public key must be the counterpart of the vendor's private key; protect the private key
@@ -73,12 +73,12 @@ no whitespace ambiguity). Mismatched serialization between signer and verifier i
 
 ## Proposed remedies
 - Isolate all of this in a `licensing/` package with a tiny, well-tested public surface
-  (`activate(path) -> Result`, `check_clock() -> Result`), so it can be PyArmor-obfuscated as a unit
-  and unit-tested with a throwaway test key pair.
+  (`activate(path) -> Result`, `check_clock() -> Result`), so it can be Cython-compiled (`.pyd`) as a
+  unit and unit-tested with a throwaway test key pair.
 - Ship a vendor-side signing script (kept private) that emits `license.key` from {machine_hash, expiry}.
 
 ## Verification (E2E)
 - Matrix test with a **test** key pair: valid → unlock; wrong machine → deny; expired → deny; tampered
   signature → deny; rolled-back clock → lock; missing registry key → treated as first run.
 - Confirm the canonical bytes signed by the vendor script verify in the app (round-trip).
-- Confirm no licensing strings/logic are visible in plain text in the built artifact (post-PyArmor).
+- Confirm no licensing strings/logic are visible in plain text in the built artifact (post-Cython `.pyd`).

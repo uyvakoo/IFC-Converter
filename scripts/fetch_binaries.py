@@ -21,7 +21,7 @@ import zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BIN = os.path.join(ROOT, "bin")
 
-# Draco compression (optional, fetched with --with-draco) needs a Node runtime + gltf-pipeline.
+# Draco compression (the default; `--no-draco` skips it) needs a Node runtime + gltf-pipeline.
 NODE_VERSION = "v20.18.1"
 NODE_URL = f"https://nodejs.org/dist/{NODE_VERSION}/node-{NODE_VERSION}-win-x64.zip"
 

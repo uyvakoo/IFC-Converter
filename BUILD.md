@@ -55,9 +55,11 @@ harder. (PyInstaller's `--key` was removed in v6, so this replaces it.)
 .\.venv\Scripts\python scripts\obfuscate_licensing.py
 ```
 This compiles `licensing\core.py` + `clockguard.py` to `*.pyd`, **removes the `.py` sources**, and
-smoke-imports the compiled package. `licensing\` then holds only `__init__.py`, the two `.pyd`, and
-`public_key.pem`. The next `pyinstaller main.spec` bundles the `.pyd` (extensions win over source on
-import) — verified: the frozen exe still validates licences, and no licence `.py`/`.pyc` ships.
+smoke-imports the compiled package. `licensing\` then holds `__init__.py` + the two `.pyd`. The
+hard-coded RSA public key (a constant in `core.py`, §6.2) is compiled **into `core.pyd`** — so the
+shipped bundle carries the key in native machine code with no loose `public_key.pem` to swap. The next
+`pyinstaller main.spec` bundles the `.pyd` (extensions win over source on import) — verified: the frozen
+exe still validates licences, and no licence `.py`/`.pyc` ships.
 
 > It **removes source in place** — run it on a throwaway release checkout, not your working tree
 > (`git checkout -- licensing` restores the `.py`). The default CI (`ci.yml`) builds the un-obfuscated
@@ -69,14 +71,23 @@ import) — verified: the frozen exe still validates licences, and no licence `.
 ```
 Output: `dist\IFC_Converter\IFC_Converter.exe` (+ `_internal\`). The `.spec` drives everything
 (`collect_all("ifcopenshell")` for the native OpenCASCADE libraries, the mandatory hidden imports,
-bundling of `bin\` and `licensing\public_key.pem`, `strip`, `noupx`).
+bundling of `bin\`, `strip`, `noupx`). The RSA **public key is hard-coded** in `licensing/core.py`
+(§6.2), so no `public_key.pem` is bundled — there is no loose key file to swap.
 
 ## 6. Verify the bundle
 ```powershell
 .\dist\IFC_Converter\IFC_Converter.exe --selftest
+Start-Sleep -Seconds 30                                   # first run of a fresh exe is slow (AV scan)
+Get-Content "$env:TEMP\IFC_Converter_selftest.txt"        # reliable result readout
 ```
 The self-test loads the native libraries from `_MEIPASS` and performs a **real IFC → GLB conversion**
-(IfcConvert + gltfpack) — it should print `selftest: 9/9 OK`.
+(IfcConvert + gltfpack + Draco) — expect `selftest: 9/9 OK`.
+
+> The bundle is a **windowed** (`console=False`) exe, so `--selftest` (and `--cli`) return the prompt
+> immediately and their output does **not** reach a captured pipe/redirect. They attach to the parent
+> terminal (output may appear a moment later) **and** `--selftest` writes its result to
+> `%TEMP%\IFC_Converter_selftest.txt` — read that file for a dependable readout. The **first** run of a
+> fresh, unsigned exe is slow because Windows AV scans it on first launch; allow 10–30 s.
 
 The bundle can also run **headless batch conversions** (no GUI). The frozen `--cli` requires a valid
 machine-locked license key (`--license`, hardened in PR #14):

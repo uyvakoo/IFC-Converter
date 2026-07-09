@@ -1,13 +1,15 @@
 # 00 — System Overview
 
 ## What it is
-A **standalone Windows desktop application** that batch-converts heavy IFC (BIM) files into two
+A **standalone Windows desktop application** that batch-converts heavy IFC (BIM) files into three
 target formats, fully offline (air-gapped), behind a hardware-locked license, shipped as a
 single-folder PyInstaller bundle.
 
 - **Target 1 — STP (STEP):** precise CAD-grade solid geometry, no colors.
-- **Target 2 — GLB (glTF, intended + Draco):** compressed, low-poly visual assets for mobile AR
+- **Target 2 — GLB (glTF + Draco, default):** Draco-compressed, low-poly visual assets for mobile AR
   (iPad / ARKit).
+- **Target 3 — USDZ:** Apple ARKit / Quick Look format, produced dependency-free from the GLB by
+  `core/usdz.py`.
 
 The application's own Python code performs **filtering, spatial cropping, and recoloring**; the
 actual format conversion is delegated to the bundled **IfcConvert.exe** CLI. Everything else (GUI,
@@ -23,12 +25,12 @@ batch queue, licensing, packaging) is scaffolding around that core pipeline.
 - Distributable as a one-folder `.exe` that runs on a clean, Python-less, offline Windows VM.
 
 ## The two value layers (keep them separate)
-1. **Geometry pipeline** — open → filter → crop → color → temp IFC → IfcConvert → GLB/STP →
+1. **Geometry pipeline** — open → filter → crop → color → temp IFC → IfcConvert → GLB/STP/USDZ →
    (GLB) Draco/decimate. This is genuine BIM engineering and is **de-riskable today**; it is the
-   exact pipeline validated during the screening, extended with cropping and a second output.
+   exact pipeline validated during the screening, extended with cropping and additional outputs.
 2. **Commercial hardening** — licensing, anti-tamper/obfuscation, PyInstaller packaging, clean-VM
    testing, code-signing. This is where **schedule and acceptance risk** concentrate (clean-VM
-   native-dep gaps, PyArmor/PyInstaller integration, AV false-positives).
+   native-dep gaps, Cython-obfuscation/PyInstaller integration, AV false-positives).
 
 Architecturally these are independent. Build and prove layer 1 headless first; wrap it in layer 2.
 

@@ -22,7 +22,8 @@ Set-Location $root
 
 if (-not $SkipBuild) {
   Write-Host "[1/4] fetch binaries ($Variant)"
-  if ($Variant -eq "draco") { python scripts/fetch_binaries.py --with-draco }
+  # Draco is the default fetch; the meshopt variant is the minimal (no Node/Draco) bundle.
+  if ($Variant -eq "meshopt") { python scripts/fetch_binaries.py --no-draco }
   else { python scripts/fetch_binaries.py }
 
   if (-not $NoObfuscate) {
@@ -41,7 +42,8 @@ if (-not $SkipBuild) {
 }
 
 if (-not (Test-Path "dist/IFC_Converter/IFC_Converter.exe")) { Write-Error "no bundle in dist/"; exit 1 }
-$suffix = if ($Variant -eq "draco") { "-draco" } else { "" }
+# Draco is the default deliverable -> win64.zip; the meshopt variant is the minimal -> win64-minimal.zip
+$suffix = if ($Variant -eq "meshopt") { "-minimal" } else { "" }
 $zip = "IFC_Converter-$Tag-win64$suffix.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }
 Compress-Archive -Path dist/IFC_Converter/* -DestinationPath $zip -Force

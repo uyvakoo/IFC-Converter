@@ -1,17 +1,19 @@
 # Releasing IFC Converter
 
 Releases are built and published automatically by `.github/workflows/release.yml` when a version tag
-is pushed. Each release ships **two** Windows bundles built on a clean `windows-latest` runner.
+is pushed. Each release ships one self-contained Windows bundle built (and licence-obfuscated) on a
+clean `windows-latest` runner.
 
 ## Artifacts
 
-| Asset | Backend | Notes |
-|-------|---------|-------|
-| `IFC_Converter-vX.Y.Z-win64.zip` | meshopt (default) | gltfpack `EXT_meshopt_compression`. Smaller download. |
-| `IFC_Converter-vX.Y.Z-win64-draco.zip` | meshopt **+ Draco** | also bundles Node + gltf-pipeline for `KHR_draco_mesh_compression` (~70 MB larger). |
+| Asset | Notes |
+|-------|-------|
+| `IFC_Converter-vX.Y.Z-win64.zip` | The one-folder app. Ships the **default Draco** AR backend (`KHR_draco_mesh_compression`, low-poly) — bundles IfcConvert + gltfpack + Node + gltf-pipeline; licence modules Cython-compiled to `.pyd` with the hard-coded public key baked in. |
+| `IFC_Converter-vX.Y.Z-win64.zip.sha256` | SHA256 checksum sidecar. |
 
-Each zip has a matching `.sha256` checksum file. Both bundles are self-contained one-folder apps —
-unzip and run `IFC_Converter.exe` (no Python required).
+Self-contained — unzip and run `IFC_Converter.exe` (no Python required). A smaller meshopt-only bundle
+(no Node/Draco) can be built locally with `scripts\fetch_binaries.py --no-draco` (see `BUILD.md` §3); the
+released artifact is the full Draco bundle since Draco is the spec default.
 
 ## Cutting a release
 
@@ -21,8 +23,9 @@ unzip and run `IFC_Converter.exe` (no Python required).
    git tag v0.1.0
    git push origin v0.1.0
    ```
-3. The workflow verifies the tag matches `ui.APP_VERSION`, builds both bundles, runs `--selftest` on
-   each, and publishes a GitHub Release with the four assets + auto-generated notes.
+3. The workflow verifies the tag matches `ui.APP_VERSION`, obfuscates the licence modules, builds the
+   bundle, **gates on `--selftest` (9/9)**, and publishes a GitHub Release with the zip + `.sha256` +
+   auto-generated notes.
 
 The tag is the single trigger; the workflow needs only the repo's default `GITHUB_TOKEN`
 (`contents: write`). No secrets required.
@@ -37,7 +40,8 @@ powershell -ExecutionPolicy Bypass -File scripts\make_release.ps1 -Variant draco
 # or package an already-built dist/ (fast)
 powershell -ExecutionPolicy Bypass -File scripts\make_release.ps1 -Variant draco -Tag v0.1.0 -SkipBuild
 ```
-Produces `IFC_Converter-v0.1.0-win64-draco.zip` + `.sha256`.
+Produces `IFC_Converter-v0.1.0-win64.zip` + `.sha256` (the default Draco bundle; `-Variant meshopt`
+makes the minimal `…-win64-minimal.zip`).
 
 ## Obfuscated production build (licensing hardening, free — no PyArmor)
 
@@ -59,11 +63,11 @@ the obfuscation step on its fresh checkout, so tagged releases are obfuscated by
 `release.yml` triggers on a `v*` tag and needs only the default `GITHUB_TOKEN` (`contents: write`) — no
 secrets. On a **private** repo the published Release is private too (visible to collaborators), which
 matches the licensing model (source stays closed; hand out the built `.exe`, not the source). Cutting a
-tag on `main` builds + publishes the meshopt and Draco zips with SHA256 sidecars automatically.
+tag on `main` builds + publishes the bundle (zip + SHA256 sidecar) automatically.
 
 ## Verifying a download
 ```powershell
-Get-FileHash -Algorithm SHA256 IFC_Converter-v0.1.0-win64-draco.zip
+Get-FileHash -Algorithm SHA256 IFC_Converter-v0.1.0-win64.zip
 # compare against the .sha256 file
 .\IFC_Converter\IFC_Converter.exe --selftest   # should print: selftest: 9/9 OK
 ```

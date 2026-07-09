@@ -16,11 +16,11 @@ Sequence the work to de-risk early, and define how each layer is proven end-to-e
 5. **Licensing + clock guard** — isolated, unit-tested with a throwaway key pair (D2/D11).
 6. **PyInstaller one-folder + clean-VM test** — native-dep collection, `_MEIPASS`, signed test report
    (payment gate, §8.4).
-7. **Hardening** — PyArmor on licensing, code-signing the exe.
+7. **Hardening** — free Cython obfuscation of licensing (`.pyd`, hard-coded key), code-signing the exe.
 
 Rationale: layers 1–3 are real engineering and de-riskable today; layers 5–7 are where schedule risk
-hides (native-dep gaps, PyArmor/PyInstaller integration, AV behavior). Don't let the GUI/DRM block
-proving the geometry.
+hides (native-dep gaps, Cython-obfuscation/PyInstaller integration, AV behavior). Don't let the GUI/DRM
+block proving the geometry.
 
 ## End-to-end verification / acceptance matrix
 | Area | Check | How |
@@ -29,7 +29,7 @@ proving the geometry.
 | Filtering ([04](04-filtering-coloring.md)) | only selected classes kept; inheritance-aware | element counts pre/post; include a `*StandardCase` model |
 | Coloring ([04](04-filtering-coloring.md)) | each group's GLB material color correct; mapped-item path works | GLB node→GlobalId→material map; type-authored model |
 | Cropping ([05](05-spatial-cropping.md)) | kept set within Z/box; temp IFC re-parses cleanly | bounds assertions; re-open written IFC |
-| Conversion ([06](06-conversion-pipeline.md)) | GLB+STP produced; input untouched; temp cleaned | exit codes; sha256 of input; temp absence |
+| Conversion ([06](06-conversion-pipeline.md)) | GLB+STP+USDZ produced; input untouched; temp cleaned | exit codes; sha256 of input; temp absence |
 | AR output ([07](07-ar-output-units-draco.md)) | Y-up, real scale, size/triangle budget | glTF viewer + ARKit device; size/tri counts |
 | Batch/UI ([08](08-batch-threading-ui.md)) | sequential; responsive ≥2s; graceful cancel | multi-file run incl. corrupt; long-run; cancel |
 | Licensing ([09](09-licensing-security.md)) | valid/expired/wrong-machine/tampered matrix | test key pair |
