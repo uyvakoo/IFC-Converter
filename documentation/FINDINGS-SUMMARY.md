@@ -162,7 +162,7 @@ standardized package (end of doc).
 | **IfcConvert** | **0.8.5** (not 0.8.0) | D10 |
 | PySide6 / cryptography / machineid / ntplib | 6.6+ / 42+ / 0.3+ / latest | per spec |
 | **+ gltfpack** (or gltf-pipeline) | bundled in `./bin/` | **D1 ✔ approved** — real Draco/low-poly |
-| **+ PyArmor** | obfuscate `licensing/*` | **D2 ✔ approved** — replaces `--key` |
+| **+ Cython** (free; not PyArmor) | obfuscate `licensing/*` → `.pyd` | **D2** — replaces `--key`; default in release |
 | PyInstaller | 6.5+, via `main.spec` | D2, D4 |
 
 **Corrected commands**

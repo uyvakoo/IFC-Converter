@@ -12,8 +12,8 @@ project owner (see [decision log](#decision-log)).
 > lives in code:
 > | D | Resolution (as-built) |
 > |---|------------------------|
-> | D1 | `core/postprocess.py` — meshopt (gltfpack, default) **and** real **Draco** (`KHR_draco_mesh_compression` via gltf-pipeline, PR #8); selectable in CLI/UI; Draco bundle via `fetch_binaries.py --with-draco` + `release.yml`. |
-> | D2 | `--key` not used; `main.spec` drives the build; PyArmor path documented in `BUILD.md` §4. |
+> | D1 | `core/postprocess.py` — **Draco default** (gltfpack `-si` low-poly → gltf-pipeline `-d`, `KHR_draco_mesh_compression`); meshopt/quantize selectable in CLI/UI; Draco toolchain bundled by default. |
+> | D2 | `--key` not used; `main.spec` drives the build; licensing obfuscated with **free Cython → `.pyd`** (not PyArmor), default in release builds; public key hard-coded. `BUILD.md` §4. |
 > | D3 | Pinned **Python 3.11.9** (`requirements*.txt`, `main.spec`, CI). |
 > | D4 | Build is `pyinstaller main.spec` only (no stray flags). |
 > | D5 | `pipeline.py` → `ifcopenshell.util.unit.calculate_unit_scale`, reported as `unit_scale_to_m` (no Python rescale). |
@@ -133,8 +133,8 @@ recursing into `MappingSource.MappedRepresentation.Items` fixes it.
 ## Summary table
 | ID | Severity | Status | One-line remedy |
 |----|----------|--------|-----------------|
-| D1 | High | ✅ Built | meshopt (gltfpack) + real Draco (gltf-pipeline) post-step; selectable, bundled |
-| D2 | High | ✅ Built | No `--key`; `main.spec` drives build; PyArmor documented (BUILD.md §4) |
+| D1 | High | ✅ Built | Draco default (gltfpack `-si` + gltf-pipeline `-d`) low-poly post-step; meshopt selectable, bundled |
+| D2 | High | ✅ Built | No `--key`; free Cython `.pyd` obfuscation (default in release) + hard-coded key |
 | D3 | Med | ✅ Built | Pinned Python 3.11.9 across reqs/spec/CI |
 | D4 | Med | ✅ Built | Build is `pyinstaller main.spec` only |
 | D5 | Med | ✅ Built | IfcConvert owns units; `calculate_unit_scale` reported only |
