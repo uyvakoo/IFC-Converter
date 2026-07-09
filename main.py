@@ -11,6 +11,22 @@ import os
 import sys
 
 
+def _attach_console() -> None:
+    """Windowed (console=False) build: attach to the launching terminal's console so --selftest / --cli
+    output is visible from cmd/PowerShell (a GUI-subsystem exe otherwise discards stdout). No-op off
+    Windows or when there is no parent console."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        if ctypes.windll.kernel32.AttachConsole(0xFFFFFFFF):  # ATTACH_PARENT_PROCESS
+            sys.stdout = open("CONOUT$", "w", buffering=1, encoding="utf-8", errors="replace")
+            sys.stderr = sys.stdout
+    except Exception:
+        pass
+
+
 def selftest() -> int:
     """Headless bundle self-check (no GUI/display). Proves bundled native deps + binaries load.
     This is the on-this-machine proxy for the clean-VM smoke test (§8.4)."""
@@ -23,11 +39,14 @@ def selftest() -> int:
     from core import paths
 
     oks = []
+    report = []
 
     def ck(name, cond):
         """Record + print one self-test check result."""
         oks.append(bool(cond))
-        print(("  OK   " if cond else "  FAIL ") + name)
+        line = ("  OK   " if cond else "  FAIL ") + name
+        report.append(line)
+        print(line)
 
     ck(f"ifcopenshell {ifcopenshell.version} imports (native libs)", True)
     ck("IfcConvert bundled", os.path.isfile(paths.ifcconvert()))
@@ -125,12 +144,26 @@ def selftest() -> int:
     MainWindow()
     ck("Qt + UI construct (offscreen)", True)
 
-    print(f"selftest: {sum(oks)}/{len(oks)} OK")
+    summary = f"selftest: {sum(oks)}/{len(oks)} OK"
+    report.append(summary)
+    print(summary)
+    # Also write a file so the result is capturable even when console output is swallowed (§8.4 evidence).
+    try:
+        import tempfile
+
+        out = os.path.join(tempfile.gettempdir(), "IFC_Converter_selftest.txt")
+        with open(out, "w", encoding="utf-8") as f:
+            f.write("\n".join(report) + "\n")
+        print(f"(result written to {out})")
+    except Exception:
+        pass
     return 0 if all(oks) else 1
 
 
 def main():
     """Process entry point: dispatch to --selftest / --cli, else launch the licensed GUI."""
+    if ("--selftest" in sys.argv) or ("--cli" in sys.argv):
+        _attach_console()  # make headless output visible from a terminal (windowed build)
     if "--selftest" in sys.argv:
         return selftest()
     if "--cli" in sys.argv:
